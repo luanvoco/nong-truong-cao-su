@@ -1,10 +1,10 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { MapPin, User, Users, Droplet, Package, Layers, GitCommit, Save, History, Check, AlertCircle, ChevronDown, Search, ShieldCheck, Smartphone } from 'lucide-react';
 
-// Dữ liệu danh mục 35 nông trường
+// Danh mục 35 nông trường
 const FARMS = Array.from({ length: 35 }, (_, i) => `NT${i + 1}`);
 
-// Dropdown thông minh với tính năng tìm kiếm (Searchable)
+// Component Dropdown tích hợp tìm kiếm
 const SearchableSelect = ({ options, value, onChange, placeholder, icon: Icon, disabled }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -93,7 +93,7 @@ export default function App() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showInstallTip, setShowInstallTip] = useState(true);
 
-  // Load Tailwind CSS script
+  // Khởi tạo Tailwind CSS
   useEffect(() => {
     if (!document.getElementById('tailwind-script')) {
       const script = document.createElement('script');
@@ -142,7 +142,6 @@ export default function App() {
         mode: 'no-cors'
       });
 
-      // Clear fields on success
       setSelectedWorker('');
       setLatexWater('');
       setLatexTap('');
@@ -153,7 +152,7 @@ export default function App() {
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 4000);
     } catch (error) {
-      alert("Đã xảy ra lỗi đồng bộ. Hãy kiểm tra kết nối mạng của anh!");
+      alert("Lỗi đồng bộ dữ liệu. Anh vui lòng kiểm tra lại kết nối!");
     } finally {
       setIsSubmitting(false);
     }
@@ -163,7 +162,7 @@ export default function App() {
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900 flex justify-center selection:bg-emerald-100">
       <div className="w-full max-w-md bg-white min-h-screen shadow-2xl relative overflow-hidden flex flex-col border-x border-slate-100">
         
-        {/* Header - Thiết kế cao cấp cho Demo Giải pháp */}
+        {/* Header - Thiết kế chuyên nghiệp cho Giải pháp đề xuất */}
         <header className="bg-gradient-to-br from-emerald-800 to-emerald-600 text-white p-8 pt-12 shadow-lg relative overflow-hidden">
           <div className="absolute -top-12 -right-12 opacity-10 rotate-12">
              <Droplet size={200} />
@@ -174,13 +173,13 @@ export default function App() {
             </div>
             <span className="text-[11px] uppercase tracking-[0.3em] font-bold text-emerald-100">Giải pháp đề xuất</span>
           </div>
-          <h1 className="text-2xl font-black tracking-tight leading-tight uppercase">BÁO CÁO SẢN LƯỢNG <br/> TỪ NÔNG TRƯỜNG</h1>
+          <h1 className="text-2xl font-black tracking-tight leading-tight uppercase text-white">BÁO CÁO SẢN LƯỢNG <br/> TỪ NÔNG TRƯỜNG</h1>
           <p className="text-emerald-50 text-xs font-medium opacity-80 mt-3 flex items-center italic">
              Tư vấn bởi Business Consultant: Luân - Base.vn
           </p>
         </header>
 
-        {/* Hướng dẫn cài đặt App (PWA) */}
+        {/* PWA Tip */}
         {showInstallTip && (
           <div className="bg-slate-900 p-4 flex items-center space-x-4 text-white shadow-inner animate-in slide-in-from-top duration-700">
             <div className="bg-emerald-500 p-2.5 rounded-2xl animate-pulse shadow-lg shadow-emerald-500/20">
@@ -192,11 +191,11 @@ export default function App() {
                 Bấm <span className="text-emerald-400 font-bold underline px-1">Chia sẻ</span> {"\u2192"} chọn <span className="text-emerald-400 font-bold underline px-1">Thêm vào MH chính</span>.
               </p>
             </div>
-            <button onClick={() => setShowInstallTip(false)} className="text-white/40 p-2 hover:text-white transition-colors">✕</button>
+            <button onClick={() => setShowInstallTip(false)} className="text-white/40 p-2">✕</button>
           </div>
         )}
 
-        {/* Thông báo thành công */}
+        {/* Success Toast */}
         <div className={`fixed top-12 left-1/2 transform -translate-x-1/2 bg-white/95 backdrop-blur-md border-2 border-emerald-500 text-emerald-800 px-8 py-4 rounded-3xl flex items-center shadow-2xl transition-all duration-500 z-[9999] ${showSuccess ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 -translate-y-10 scale-90 pointer-events-none'}`}>
           <div className="bg-emerald-500 text-white p-1 rounded-full mr-3">
              <Check className="w-4 h-4" />
@@ -207,7 +206,6 @@ export default function App() {
         <main className="flex-1 overflow-y-auto p-6 pb-32">
           <form onSubmit={handleSubmit} className="space-y-10">
             
-            {/* Mục định danh: Nông trường & Nhân sự */}
             <section className="space-y-6">
               <div className="group">
                 <label className="block text-[11px] font-black text-slate-400 mb-3 ml-1 uppercase tracking-[0.2em]">Khu vực nông trường</label>
@@ -233,7 +231,6 @@ export default function App() {
               </div>
             </section>
 
-            {/* Mục nhập số liệu */}
             <section className="bg-slate-50 rounded-[2.5rem] p-7 border-2 border-slate-100 shadow-sm relative">
               <h2 className="text-[11px] font-black text-slate-400 mb-6 flex items-center uppercase tracking-[0.2em]">
                 <AlertCircle className="w-3.5 h-3.5 mr-2 text-emerald-600" /> Số lượng thực tế (Kg)
@@ -261,7 +258,6 @@ export default function App() {
               </div>
             </section>
 
-            {/* Tính năng ghi nhận Cạo thay */}
             <section className={`rounded-[2.5rem] border-2 transition-all duration-300 shadow-sm ${isSubstitute ? 'bg-emerald-50 border-emerald-400 shadow-lg' : 'bg-white border-slate-100'}`}>
               <div className="flex items-center justify-between p-6">
                 <div className="flex items-center space-x-4">
@@ -297,7 +293,6 @@ export default function App() {
               )}
             </section>
 
-            {/* Nút gửi dữ liệu */}
             <button
               type="submit"
               disabled={isSubmitting || !selectedFarm || !selectedWorker}
@@ -316,7 +311,6 @@ export default function App() {
             </button>
           </form>
 
-          {/* Footer */}
           <footer className="mt-20 text-center pb-12 border-t border-slate-100 pt-10">
              <div className="flex justify-center items-center space-x-4 text-slate-200 mb-4">
                 <div className="h-px w-10 bg-slate-200"></div>
