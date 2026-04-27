@@ -4,7 +4,7 @@ import { MapPin, User, Users, Droplet, Package, Layers, GitCommit, Save, History
 // Danh mục 35 nông trường
 const FARMS = Array.from({ length: 35 }, (_, i) => `NT${i + 1}`);
 
-// Component Dropdown tích hợp tìm kiếm
+// Component Dropdown thông minh
 const SearchableSelect = ({ options, value, onChange, placeholder, icon: Icon, disabled }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -93,7 +93,6 @@ export default function App() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showInstallTip, setShowInstallTip] = useState(true);
 
-  // Khởi tạo Tailwind CSS
   useEffect(() => {
     if (!document.getElementById('tailwind-script')) {
       const script = document.createElement('script');
@@ -152,7 +151,7 @@ export default function App() {
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 4000);
     } catch (error) {
-      alert("Lỗi đồng bộ dữ liệu. Anh vui lòng kiểm tra lại kết nối!");
+      alert("Lỗi kết nối mạng!");
     } finally {
       setIsSubmitting(false);
     }
@@ -162,7 +161,6 @@ export default function App() {
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900 flex justify-center selection:bg-emerald-100">
       <div className="w-full max-w-md bg-white min-h-screen shadow-2xl relative overflow-hidden flex flex-col border-x border-slate-100">
         
-        {/* Header - Thiết kế chuyên nghiệp cho Giải pháp đề xuất */}
         <header className="bg-gradient-to-br from-emerald-800 to-emerald-600 text-white p-8 pt-12 shadow-lg relative overflow-hidden">
           <div className="absolute -top-12 -right-12 opacity-10 rotate-12">
              <Droplet size={200} />
@@ -173,19 +171,18 @@ export default function App() {
             </div>
             <span className="text-[11px] uppercase tracking-[0.3em] font-bold text-emerald-100">Giải pháp đề xuất</span>
           </div>
-          <h1 className="text-2xl font-black tracking-tight leading-tight uppercase text-white">BÁO CÁO SẢN LƯỢNG <br/> TỪ NÔNG TRƯỜNG</h1>
+          <h1 className="text-2xl font-black tracking-tight leading-tight uppercase text-white text-left">BÁO CÁO SẢN LƯỢNG <br/> TỪ NÔNG TRƯỜNG</h1>
           <p className="text-emerald-50 text-xs font-medium opacity-80 mt-3 flex items-center italic">
              Tư vấn bởi Business Consultant: Luân - Base.vn
           </p>
         </header>
 
-        {/* PWA Tip */}
         {showInstallTip && (
           <div className="bg-slate-900 p-4 flex items-center space-x-4 text-white shadow-inner animate-in slide-in-from-top duration-700">
             <div className="bg-emerald-500 p-2.5 rounded-2xl animate-pulse shadow-lg shadow-emerald-500/20">
                <Smartphone className="w-6 h-6 text-white" />
             </div>
-            <div className="flex-1">
+            <div className="flex-1 text-left">
               <p className="text-[11px] font-bold leading-tight">Cài đặt App vào điện thoại!</p>
               <p className="text-[10px] opacity-70 mt-1">
                 Bấm <span className="text-emerald-400 font-bold underline px-1">Chia sẻ</span> {"\u2192"} chọn <span className="text-emerald-400 font-bold underline px-1">Thêm vào MH chính</span>.
@@ -195,7 +192,6 @@ export default function App() {
           </div>
         )}
 
-        {/* Success Toast */}
         <div className={`fixed top-12 left-1/2 transform -translate-x-1/2 bg-white/95 backdrop-blur-md border-2 border-emerald-500 text-emerald-800 px-8 py-4 rounded-3xl flex items-center shadow-2xl transition-all duration-500 z-[9999] ${showSuccess ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 -translate-y-10 scale-90 pointer-events-none'}`}>
           <div className="bg-emerald-500 text-white p-1 rounded-full mr-3">
              <Check className="w-4 h-4" />
@@ -205,9 +201,8 @@ export default function App() {
 
         <main className="flex-1 overflow-y-auto p-6 pb-32">
           <form onSubmit={handleSubmit} className="space-y-10">
-            
             <section className="space-y-6">
-              <div className="group">
+              <div className="group text-left">
                 <label className="block text-[11px] font-black text-slate-400 mb-3 ml-1 uppercase tracking-[0.2em]">Khu vực nông trường</label>
                 <SearchableSelect
                   options={FARMS}
@@ -218,7 +213,7 @@ export default function App() {
                 />
               </div>
 
-              <div>
+              <div className="text-left">
                 <label className="block text-[11px] font-black text-slate-400 mb-3 ml-1 uppercase tracking-[0.2em]">Họ tên nhân sự</label>
                 <SearchableSelect
                   options={workersInFarm}
@@ -235,7 +230,6 @@ export default function App() {
               <h2 className="text-[11px] font-black text-slate-400 mb-6 flex items-center uppercase tracking-[0.2em]">
                 <AlertCircle className="w-3.5 h-3.5 mr-2 text-emerald-600" /> Số lượng thực tế (Kg)
               </h2>
-              
               <div className="grid grid-cols-2 gap-4">
                 {[
                   { id: 'water', label: 'Mủ Nước', icon: Droplet, color: 'text-blue-600', state: latexWater, setState: setLatexWater, bg: 'bg-blue-50' },
@@ -258,13 +252,13 @@ export default function App() {
               </div>
             </section>
 
-            <section className={`rounded-[2.5rem] border-2 transition-all duration-300 shadow-sm ${isSubstitute ? 'bg-emerald-50 border-emerald-400 shadow-lg' : 'bg-white border-slate-100'}`}>
+            <section className={`rounded-[2.5rem] border-2 transition-all duration-300 shadow-sm ${isSubstitute ? 'bg-emerald-50 border-emerald-500 shadow-emerald-100' : 'bg-white border-slate-100'}`}>
               <div className="flex items-center justify-between p-6">
                 <div className="flex items-center space-x-4">
                    <div className={`p-4 rounded-2xl transition-all shadow-sm ${isSubstitute ? 'bg-emerald-600 text-white shadow-emerald-300/30' : 'bg-slate-100 text-slate-400'}`}>
                       <Users size={24} />
                    </div>
-                   <div>
+                   <div className="text-left">
                       <label className="text-sm font-black text-slate-800">Báo cáo cạo thay</label>
                       <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tight italic opacity-70">Nhân sự hỗ trợ thu hoạch</p>
                    </div>
@@ -296,10 +290,10 @@ export default function App() {
             <button
               type="submit"
               disabled={isSubmitting || !selectedFarm || !selectedWorker}
-              className={`w-full text-white font-black py-6 px-6 rounded-[2rem] shadow-2xl flex items-center justify-center transition-all active:scale-95 uppercase tracking-[0.3em] text-sm group relative overflow-hidden ${isSubmitting || !selectedFarm || !selectedWorker ? 'bg-slate-300 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200'}`}
+              className={`w-full text-white font-black py-6 px-6 rounded-[2rem] shadow-2xl flex items-center justify-center transition-all active:scale-95 uppercase tracking-[0.3em] text-sm group relative overflow-hidden ${isSubmitting || !selectedFarm || !selectedWorker ? 'bg-slate-300' : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200'}`}
             >
               {isSubmitting ? (
-                 <div className="flex items-center space-x-3">
+                 <div className="flex items-center space-x-3 text-white">
                     <div className="w-5 h-5 border-3 border-white/30 border-t-white rounded-full animate-spin"></div>
                     <span>ĐANG ĐỒNG BỘ...</span>
                  </div>
@@ -317,7 +311,7 @@ export default function App() {
                 <span className="text-[10px] font-black uppercase tracking-[0.5em]">Giải pháp đề xuất</span>
                 <div className="h-px w-10 bg-slate-200"></div>
              </div>
-             <p className="text-[11px] text-slate-400 font-black uppercase tracking-widest">Tư vấn giải pháp: Luân - Base.vn</p>
+             <p className="text-[11px] text-slate-400 font-black uppercase tracking-widest text-center">Tư vấn giải pháp: Luân - Base.vn</p>
              <p className="text-[9px] text-slate-300 mt-2 font-medium italic">PoC (Proof of Concept) - Lưu hành demo khách hàng</p>
           </footer>
         </main>
