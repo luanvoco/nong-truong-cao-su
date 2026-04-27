@@ -2,6 +2,9 @@
   "name": "nong-truong-cao-su",
   "version": "1.0.0",
   "private": true,
+  "overrides": {
+    "ajv": "^8.0.0"
+  },
   "engines": {
     "node": "20.x"
   },
