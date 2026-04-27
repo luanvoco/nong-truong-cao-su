@@ -2,7 +2,7 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { MapPin, User, Users, Droplet, Package, Layers, GitCommit, Save, Check, AlertCircle, ChevronDown, Search, ShieldCheck, Smartphone, Wifi, WifiOff, RefreshCw, Database, Send, X } from 'lucide-react';
 
 /**
- * NHẬP SẢN LƯỢNG CAO SU - PHIÊN BẢN INTEGER & SMART FLOW (v2.5)
+ * NHẬP SẢN LƯỢNG CAO SU - PHIÊN BẢN VRG OFFICIAL BRANDING (v2.7)
  * Consultant: Luân - Base.vn
  */
 
@@ -86,7 +86,7 @@ const SearchableSelect = ({ options, value, onChange, placeholder, icon: Icon, d
                 </li>
               ))
             ) : (
-              <li className="px-6 py-8 text-sm text-gray-400 text-center italic">Không thấy kết quả</li>
+              <li className="px-6 py-8 text-sm text-gray-400 text-center italic font-medium">Không thấy kết quả</li>
             )}
           </ul>
         </div>
@@ -109,8 +109,9 @@ export default function App() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [isSyncing, setIsSyncing] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showPwaTip, setShowPwaTip] = useState(false);
 
-  // Refs để điều hướng tiêu điểm (Focus Flow)
+  // Refs điều hướng thông minh (Enter Flow)
   const inputRefs = {
     water: useRef(),
     tap: useRef(),
@@ -128,6 +129,39 @@ export default function App() {
 
     const savedQueue = JSON.parse(localStorage.getItem('rubber_yield_cache_v3') || '[]');
     setOfflineQueue(savedQueue);
+
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+    if (!isStandalone && window.innerWidth < 768) {
+        setTimeout(() => setShowPwaTip(true), 3000);
+    }
+
+    // TÍCH HỢP LOGO VRG CHÍNH THỨC (SVG Base64)
+    if (!document.getElementById('vrg-official-branding')) {
+      // SVG tái tạo logo VRG: Vòng tròn xanh + 3 đường lượn trắng
+      const svgIcon = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj4KICA8Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0OCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMDA5MjQ1IiBzdHJva2Utd2lkdGg9IjIiLz4KICA8cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgcng9IjI0IiBmaWxsPSIjMDA5MjQ1Ii8+CiAgPHBhdGggZD0iTTM1IDQwIEM0MCAzMCA1MCAyNSA2MCA0MCBDNjUgNTAgNjAgNjUgNTAgODAgQzQwIDY1IDM1IDUwIDM1IDQwIFoiIGZpbGw9IndoaXRlIi8+CiAgPHBhdGggZD0iTTQ1IDM1IEM1MCAyNSA2MCAyMCA3MCAzNSBDNzUgNDUgNzAgNjAgNjAgNzUgQzUwIDYwIDQ1IDQ1IDQ1IDM1IFoiIGZpbGw9IndoaXRlIiBvcGFjaXR5PSIwLjkiLz4KICA8cGF0aCBkPSJNMjUgNDUgQzMwIDM1IDQwIDMwIDUwIDQ1IEM1NSA1NSA1MCA3MCA0MCA4NSBDMzAgNzAgMjUgNTUgMjUgNDUgWiIgZmlsbD0id2hpdGUiIG9wYWNpdHk9IjAuOCIvPgo8L3N2Zz4=";
+      
+      const appleIcon = document.createElement('link');
+      appleIcon.id = 'vrg-official-branding';
+      appleIcon.rel = 'apple-touch-icon';
+      appleIcon.href = svgIcon;
+      document.head.appendChild(appleIcon);
+
+      const shortcutIcon = document.createElement('link');
+      shortcutIcon.rel = 'icon';
+      shortcutIcon.type = "image/svg+xml";
+      shortcutIcon.href = svgIcon;
+      document.head.appendChild(shortcutIcon);
+
+      const metaCapable = document.createElement('meta');
+      metaCapable.name = "apple-mobile-web-app-capable";
+      metaCapable.content = "yes";
+      document.head.appendChild(metaCapable);
+
+      const metaTitle = document.createElement('meta');
+      metaTitle.name = "apple-mobile-web-app-title";
+      metaTitle.content = "VRG Sản Lượng";
+      document.head.appendChild(metaTitle);
+    }
 
     if (!document.getElementById('tailwind-cdn')) {
       const script = document.createElement('script');
@@ -194,13 +228,12 @@ export default function App() {
     setSelectedWorker(''); setLatexWater(''); setLatexTap(''); setLatexDong(''); setLatexScrap(''); setIsSubstitute(false); setSubstituteWorker('');
     if (isOnline) { setTimeout(() => handleSyncAll(), 500); }
     
-    // Sau khi lưu, quay về ô nhập liệu đầu tiên cho người tiếp theo
+    // Focus lại ô đầu tiên cho lượt nhập tiếp theo
     if (inputRefs.water.current) inputRefs.water.current.focus();
   };
 
-  // Hàm xử lý chỉ nhận số nguyên và tự động nhảy ô
-  const handleIntInput = (val, setter, nextRef, e) => {
-    // Chỉ giữ lại các chữ số
+  // Chỉ nhận số nguyên
+  const handleIntInput = (val, setter) => {
     const cleanVal = val.replace(/[^0-9]/g, '');
     setter(cleanVal);
   };
@@ -220,24 +253,56 @@ export default function App() {
     <div className="min-h-screen bg-slate-100 font-sans text-slate-900 flex justify-center selection:bg-emerald-100">
       <div className="w-full max-w-md bg-white min-h-screen shadow-2xl relative flex flex-col border-x border-slate-200">
         
-        <header className="bg-gradient-to-br from-emerald-800 to-emerald-600 text-white p-8 pt-12 shadow-lg relative overflow-hidden flex-shrink-0 text-left">
+        {/* PWA Gợi ý cài đặt */}
+        {showPwaTip && (
+           <div className="fixed bottom-6 left-6 right-6 z-[3000] bg-slate-900 text-white p-5 rounded-[2rem] shadow-2xl border border-white/10 animate-in slide-in-from-bottom duration-700">
+              <div className="flex items-start space-x-4 text-left">
+                 <div className="bg-emerald-600 p-3 rounded-2xl flex-shrink-0 shadow-lg text-white">
+                    <Smartphone size={24} />
+                 </div>
+                 <div className="flex-1">
+                    <p className="text-xs font-black uppercase text-emerald-400 italic tracking-widest">Cài đặt App VRG</p>
+                    <p className="text-[11px] mt-1 text-slate-300 italic leading-relaxed font-medium">
+                       Bấm nút <span className="text-white font-bold underline">Chia sẻ</span>, sau đó chọn <span className="text-white font-bold underline">"Thêm vào MH chính"</span> để hiện logo VRG.
+                    </p>
+                 </div>
+                 <button onClick={() => setShowPwaTip(false)} className="text-slate-500 p-1"><X size={16}/></button>
+              </div>
+           </div>
+        )}
+
+        {/* Header - Mang bản sắc VRG Official */}
+        <header className="bg-gradient-to-br from-emerald-900 to-emerald-700 text-white p-8 pt-12 shadow-lg relative overflow-hidden flex-shrink-0 text-left">
           <div className="absolute -top-12 -right-12 opacity-10 rotate-12"><Droplet size={200} /></div>
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-4 relative z-10">
              <div className="flex items-center space-x-2">
                 <div className="p-2 bg-emerald-400/20 rounded-xl backdrop-blur-sm border border-emerald-400/30 text-emerald-200"><ShieldCheck size={16} /></div>
-                <span className="text-[11px] uppercase tracking-[0.3em] font-bold text-emerald-100 italic">Giải pháp đề xuất</span>
+                <span className="text-[11px] uppercase tracking-[0.3em] font-bold text-emerald-100 italic">VRG - Dầu Tiếng Việt Lào</span>
              </div>
              <div className={`flex items-center space-x-2 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${isOnline ? 'bg-emerald-500/20 text-emerald-100 border border-emerald-500/30' : 'bg-red-500/30 text-red-100 border border-red-500/40 animate-pulse'}`}>
                 {isOnline ? <><Wifi size={12} className="mr-1"/> Trực tuyến</> : <><WifiOff size={12} className="mr-1"/> Ngoại tuyến</>}
              </div>
           </div>
-          <h1 className="text-2xl font-black tracking-tight leading-tight uppercase italic text-left">BÁO CÁO SẢN LƯỢNG <br/> TỪ NÔNG TRƯỜNG</h1>
-          <p className="text-emerald-50 text-xs font-medium opacity-80 mt-3 flex items-center italic">Tư vấn bởi Business Consultant: Luân - Base.vn</p>
+          
+          <div className="flex items-start space-x-4 relative z-10 mb-4">
+             <div className="bg-white p-2 rounded-2xl shadow-lg flex-shrink-0">
+                <svg width="40" height="40" viewBox="0 0 100 100">
+                   <rect width="100" height="100" rx="20" fill="#009245"/>
+                   <path d="M35 40 C40 30 50 25 60 40 C65 50 60 65 50 80 C40 65 35 50 35 40 Z" fill="white"/>
+                   <path d="M45 35 C50 25 60 20 70 35 C75 45 70 60 60 75 C50 60 45 45 45 35 Z" fill="white" opacity="0.9"/>
+                   <path d="M25 45 C30 35 40 30 50 45 C55 55 50 70 40 85 C30 70 25 55 25 45 Z" fill="white" opacity="0.8"/>
+                </svg>
+             </div>
+             <div>
+                <h1 className="text-2xl font-black tracking-tight leading-tight uppercase italic">BÁO CÁO SẢN LƯỢNG <br/> TỪ NÔNG TRƯỜNG</h1>
+                <p className="text-emerald-50 text-[10px] font-bold opacity-80 mt-1 uppercase tracking-widest italic">Tư vấn giải pháp: Luân - Base.vn</p>
+             </div>
+          </div>
         </header>
 
         {offlineQueue.length > 0 && (
-          <div className={`p-4 flex items-center justify-between shadow-lg z-[60] bg-amber-500 text-white`}>
-             <div className="flex items-center space-x-3 text-left">
+          <div className="p-4 flex items-center justify-between bg-amber-500 text-white shadow-lg z-[60] animate-in slide-in-from-top duration-300">
+             <div className="flex items-center space-x-3 text-left leading-tight">
                 <div className={`p-2.5 rounded-2xl ${isSyncing ? 'animate-spin bg-amber-400' : 'bg-amber-600 shadow-md'}`}><RefreshCw size={18} /></div>
                 <div><p className="text-[11px] font-black uppercase tracking-tighter">Đợi đồng bộ</p><p className="text-[10px] font-bold opacity-80">{offlineQueue.length} bản ghi đang nợ</p></div>
              </div>
@@ -253,18 +318,18 @@ export default function App() {
         <main className="flex-1 overflow-y-auto p-6 pb-32">
           <form onSubmit={handleSubmit} className="space-y-10">
             <section className="space-y-6">
-              <div className="text-left">
+              <div className="text-left group">
                 <label className="block text-[11px] font-black text-slate-400 mb-3 ml-1 uppercase tracking-[0.2em]">Khu vực nông trường</label>
                 <SearchableSelect options={FARMS} value={selectedFarm} onChange={handleFarmChange} placeholder="Chọn đơn vị..." icon={MapPin} />
               </div>
 
-              <div className="text-left">
+              <div className="text-left group">
                 <label className="block text-[11px] font-black text-slate-400 mb-3 ml-1 uppercase tracking-[0.2em]">Họ tên nhân sự</label>
                 <SearchableSelect 
                     options={workersInFarm} 
                     value={selectedWorker} 
                     onChange={setSelectedWorker} 
-                    placeholder={!selectedFarm ? 'Đang đợi chọn nông trường...' : 'Gõ tên hoặc số thẻ...'} 
+                    placeholder={!selectedFarm ? 'Đợi chọn nông trường...' : 'Gõ tên hoặc số thẻ...'} 
                     icon={User} 
                     disabled={!selectedFarm}
                     nextRef={inputRefs.water}
@@ -273,7 +338,7 @@ export default function App() {
             </section>
 
             <section className="bg-slate-50 rounded-[2rem] p-7 border-2 border-slate-100 shadow-sm relative text-left">
-              <h2 className="text-[11px] font-black text-slate-400 mb-6 flex items-center uppercase tracking-[0.2em] relative z-10 text-left"><AlertCircle size={14} className="mr-2 text-emerald-600" /> Nhập số lượng (KG)</h2>
+              <h2 className="text-[11px] font-black text-slate-400 mb-6 flex items-center uppercase tracking-[0.2em] relative z-10 text-left"><AlertCircle size={14} className="mr-2 text-emerald-600" /> Nhập sản lượng (KG)</h2>
               <div className="grid grid-cols-2 gap-4 relative z-10">
                 {[
                   { id: 'water', label: 'Mủ Nước', icon: Droplet, color: 'text-blue-600', state: latexWater, setState: setLatexWater, bg: 'bg-blue-50', ref: inputRefs.water, next: inputRefs.tap },
@@ -282,7 +347,7 @@ export default function App() {
                   { id: 'scrap', label: 'Mủ Dây', icon: GitCommit, color: 'text-slate-600', state: latexScrap, setState: setLatexScrap, bg: 'bg-slate-50', ref: inputRefs.scrap, next: null },
                 ].map(item => (
                   <div key={item.id} className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 flex flex-col items-center group active:scale-95 transition-all hover:border-emerald-500">
-                    <div className={`p-3 rounded-2xl ${item.bg} mb-3`}><item.icon className={`w-6 h-6 ${item.color}`} /></div>
+                    <div className={`p-3 rounded-2xl ${item.bg} mb-3 group-hover:scale-110 transition-transform`}><item.icon className={`w-6 h-6 ${item.color}`} /></div>
                     <span className="text-[10px] font-black text-slate-400 mb-3 uppercase tracking-tighter text-center">{item.label}</span>
                     <input
                       ref={item.ref}
@@ -305,9 +370,9 @@ export default function App() {
                    <div className={`p-3.5 rounded-2xl transition-all shadow-sm flex-shrink-0 ${isSubstitute ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-400'}`}>
                       <Users size={20} />
                    </div>
-                   <div className="flex-1 min-w-0 text-left">
+                   <div className="flex-1 min-w-0 text-left leading-tight">
                       <label className="text-sm font-black text-slate-800 block truncate uppercase tracking-tighter text-left">Báo cáo cạo thay</label>
-                      <p className="text-[9px] text-slate-500 font-bold uppercase tracking-tight italic opacity-70 truncate text-left">Hỗ trợ thu hoạch</p>
+                      <p className="text-[9px] text-slate-500 font-bold uppercase tracking-tight italic opacity-70 truncate text-left font-medium">Hỗ trợ khai thác</p>
                    </div>
                 </div>
                 <button
@@ -347,24 +412,24 @@ export default function App() {
 
           {offlineQueue.length > 0 && (
              <section className="mt-12 border-t border-slate-100 pt-8 animate-in fade-in duration-500 text-left">
-                <div className="flex justify-between items-center mb-6">
+                <div className="flex justify-between items-center mb-6 text-left">
                    <div className="flex items-center space-x-2 px-1 text-left">
                       <Database size={14} className="text-slate-400" />
                       <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-left">Dữ liệu đợi (Local)</h3>
                    </div>
-                   <button onClick={() => setOfflineQueue([])} className="text-red-400 text-[9px] font-black uppercase hover:text-red-600 transition-colors p-1">Xóa sạch</button>
+                   <button onClick={() => setOfflineQueue([])} className="text-red-400 text-[9px] font-black uppercase hover:text-red-600 transition-colors p-1 font-bold">Xóa sạch</button>
                 </div>
                 <div className="space-y-4">
                    {offlineQueue.slice(0, 3).map((rec) => (
                       <div key={rec.tempId} className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex justify-between items-center group transition-all hover:bg-white hover:border-emerald-200 text-left">
-                         <div className="text-left">
+                         <div className="text-left leading-tight">
                             <p className="text-xs font-black text-slate-800 text-left">{rec.worker}</p>
                             <p className="text-[9px] text-slate-400 font-bold mt-1 uppercase italic text-left">{rec.time}</p>
                          </div>
                          <div className="text-right">
                             <div className="flex items-center justify-end space-x-1">
                                <Droplet size={10} className="text-blue-500" />
-                               <p className="text-[11px] font-black text-blue-600 text-left">{rec.water} Kg</p>
+                               <p className="text-[11px] font-black text-blue-600 text-left font-bold">{rec.water} Kg</p>
                             </div>
                          </div>
                       </div>
@@ -374,7 +439,7 @@ export default function App() {
           )}
 
           <footer className="mt-20 text-center pb-12 border-t border-slate-100 pt-10 text-left">
-             <p className="text-[11px] text-slate-400 font-black uppercase tracking-widest italic text-center leading-relaxed">Tư vấn giải pháp: Luân - Base.vn <br/> Hybrid Offline Solution (v2.5)</p>
+             <p className="text-[11px] text-slate-400 font-black uppercase tracking-widest italic text-center leading-relaxed font-bold">Tư vấn giải pháp: Luân - Base.vn <br/> Hybrid Offline Solution (v2.7)</p>
           </footer>
         </main>
       </div>
