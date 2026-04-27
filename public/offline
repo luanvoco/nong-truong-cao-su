@@ -1,0 +1,45 @@
+/**
+ * SERVICE WORKER - TRÁI TIM CỦA CHẾ ĐỘ OFFLINE (v3.0)
+ * Giúp App "sống sót" khi không có mạng.
+ */
+
+const CACHE_NAME = 'vrg-rubber-v3.0';
+const urlsToCache = [
+  '/',
+  '/index.html',
+  '/manifest.json',
+  '/favicon.ico'
+];
+
+// 1. Cài đặt: Tải "linh kiện" vào kho lưu trữ của điện thoại
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.addAll(urlsToCache);
+    })
+  );
+});
+
+// 2. Kích hoạt: Dọn dẹp kho cũ
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((cacheName) => {
+          if (cacheName !== CACHE_NAME) {
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    })
+  );
+});
+
+// 3. Đánh chặn: Khi không có mạng, lấy đồ trong kho ra dùng
+self.addEventListener('fetch', (event) => {
+  event.respondWith(
+    caches.match(event.request).then((response) => {
+      return response || fetch(event.request);
+    })
+  );
+});
