@@ -1,10 +1,13 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { MapPin, User, Users, Droplet, Package, Layers, GitCommit, Save, Check, AlertCircle, ChevronDown, Search, ShieldCheck, Smartphone, Wifi, WifiOff, RefreshCw, Database, Send } from 'lucide-react';
 
-// Danh mục 35 nông trường
+/**
+ * NHẬP SẢN LƯỢNG CAO SU - PHIÊN BẢN HYBRID OFFLINE PRO (v2.2)
+ * Consultant: Luân - Base.vn
+ */
+
 const FARMS = Array.from({ length: 35 }, (_, i) => `NT${i + 1}`);
 
-// Component Dropdown tích hợp tìm kiếm
 const SearchableSelect = ({ options, value, onChange, placeholder, icon: Icon, disabled }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -41,7 +44,7 @@ const SearchableSelect = ({ options, value, onChange, placeholder, icon: Icon, d
       </div>
 
       {isOpen && (
-        <div className="absolute z-[1001] w-full mt-2 bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+        <div className="absolute z-[1001] w-full mt-2 bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 text-left">
           <div className="p-3 border-b border-slate-100 bg-slate-50 sticky top-0">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -92,22 +95,19 @@ export default function App() {
   const [isSubstitute, setIsSubstitute] = useState(false);
   const [substituteWorker, setSubstituteWorker] = useState('');
   
-  // Offline & Sync States
   const [offlineQueue, setOfflineQueue] = useState([]);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [isSyncing, setIsSyncing] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [showInstallTip, setShowInstallTip] = useState(true);
 
   const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyLiyGtZI0eUE_9rLGnTlXefIQyt0to6tu3yasGW7wc0-UC4cFhr-Xu3-ECYgzcCoKW/exec';
 
-  // Khởi tạo trạng thái mạng và nạp dữ liệu cũ
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
-
+    
     const savedQueue = JSON.parse(localStorage.getItem('rubber_yield_cache_v3') || '[]');
     setOfflineQueue(savedQueue);
 
@@ -124,7 +124,6 @@ export default function App() {
     };
   }, []);
 
-  // Tự động sao lưu Queue vào máy
   useEffect(() => {
     localStorage.setItem('rubber_yield_cache_v3', JSON.stringify(offlineQueue));
   }, [offlineQueue]);
@@ -145,16 +144,16 @@ export default function App() {
     if (offlineQueue.length === 0 || !isOnline || isSyncing) return;
     setIsSyncing(true);
     
-    const currentQueue = [...offlineQueue];
+    const queueToSync = [...offlineQueue];
     const failed = [];
 
-    for (const record of currentQueue) {
+    for (const record of queueToSync) {
       try {
         const payload = new URLSearchParams();
         Object.keys(record).forEach(key => {
           if (key !== 'tempId') payload.append(key, record[key]);
         });
-
+        
         await fetch(SCRIPT_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -190,10 +189,8 @@ export default function App() {
       time: new Date().toLocaleString('vi-VN')
     };
 
-    // Luôn ưu tiên lưu vào hàng chờ trước (Chống mất data)
     setOfflineQueue(prev => [newRecord, ...prev]);
 
-    // Reset giao diện
     setSelectedWorker('');
     setLatexWater('');
     setLatexTap('');
@@ -202,7 +199,6 @@ export default function App() {
     setIsSubstitute(false);
     setSubstituteWorker('');
 
-    // Nếu có mạng, thử đồng bộ ngay
     if (isOnline) {
       setTimeout(() => handleSyncAll(), 500);
     }
@@ -212,7 +208,6 @@ export default function App() {
     <div className="min-h-screen bg-slate-100 font-sans text-slate-900 flex justify-center selection:bg-emerald-100">
       <div className="w-full max-w-md bg-white min-h-screen shadow-2xl relative flex flex-col border-x border-slate-200">
         
-        {/* Header với trạng thái kết nối thực tế */}
         <header className="bg-gradient-to-br from-emerald-800 to-emerald-600 text-white p-8 pt-12 shadow-lg relative overflow-hidden flex-shrink-0 text-left">
           <div className="absolute -top-12 -right-12 opacity-10 rotate-12">
              <Droplet size={200} />
@@ -224,18 +219,16 @@ export default function App() {
                 </div>
                 <span className="text-[11px] uppercase tracking-[0.3em] font-bold text-emerald-100 italic">Giải pháp đề xuất</span>
              </div>
-             {/* Connection Badge */}
              <div className={`flex items-center space-x-2 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider transition-all duration-500 ${isOnline ? 'bg-emerald-500/20 text-emerald-100 border border-emerald-500/30' : 'bg-red-500/30 text-red-100 border border-red-500/40 animate-pulse'}`}>
                 {isOnline ? <><Wifi size={12} className="mr-1"/> Trực tuyến</> : <><WifiOff size={12} className="mr-1"/> Ngoại tuyến</>}
              </div>
           </div>
-          <h1 className="text-2xl font-black tracking-tight leading-tight uppercase italic">BÁO CÁO SẢN LƯỢNG <br/> TỪ NÔNG TRƯỜNG</h1>
-          <p className="text-emerald-50 text-xs font-medium opacity-80 mt-3 flex items-center italic">
+          <h1 className="text-2xl font-black tracking-tight leading-tight uppercase italic text-left">BÁO CÁO SẢN LƯỢNG <br/> TỪ NÔNG TRƯỜNG</h1>
+          <p className="text-emerald-50 text-xs font-medium opacity-80 mt-3 flex items-center italic text-left">
              Tư vấn bởi Business Consultant: Luân - Base.vn
           </p>
         </header>
 
-        {/* Thanh trạng thái đồng bộ */}
         {offlineQueue.length > 0 && (
           <div className={`p-4 flex items-center justify-between shadow-lg z-[60] animate-in slide-in-from-top duration-300 ${isOnline ? 'bg-amber-500 text-white' : 'bg-slate-700 text-slate-300'}`}>
              <div className="flex items-center space-x-3 text-left leading-tight">
@@ -243,8 +236,8 @@ export default function App() {
                    <RefreshCw size={18} />
                 </div>
                 <div>
-                   <p className="text-[11px] font-black uppercase tracking-tighter">Đợi đồng bộ</p>
-                   <p className="text-[10px] font-bold opacity-80">{offlineQueue.length} bản ghi đang nợ</p>
+                   <p className="text-[11px] font-black uppercase tracking-tighter text-left">Đợi đồng bộ</p>
+                   <p className="text-[10px] font-bold opacity-80 text-left">{offlineQueue.length} bản ghi đang nợ</p>
                 </div>
              </div>
              {isOnline && !isSyncing && (
@@ -258,7 +251,6 @@ export default function App() {
           </div>
         )}
 
-        {/* Toast thành công */}
         <div className={`fixed top-12 left-1/2 transform -translate-x-1/2 bg-white/95 backdrop-blur-md border-2 border-emerald-500 text-emerald-800 px-10 py-5 rounded-[2.5rem] flex items-center shadow-2xl transition-all duration-700 z-[9999] ${showSuccess ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 -translate-y-20 scale-90 pointer-events-none'}`}>
           <div className="bg-emerald-500 text-white p-1.5 rounded-full mr-4">
              <Check className="w-5 h-5" />
@@ -268,11 +260,9 @@ export default function App() {
 
         <main className="flex-1 overflow-y-auto p-6 pb-32">
           <form onSubmit={handleSubmit} className="space-y-10">
-            
-            {/* Nhận diện nhân sự */}
             <section className="space-y-6">
               <div className="group text-left">
-                <label className="block text-[11px] font-black text-slate-400 mb-3 ml-1 uppercase tracking-[0.2em]">Khu vực nông trường</label>
+                <label className="block text-[11px] font-black text-slate-400 mb-3 ml-1 uppercase tracking-[0.2em] text-left">Khu vực nông trường</label>
                 <SearchableSelect
                   options={FARMS}
                   value={selectedFarm}
@@ -283,22 +273,21 @@ export default function App() {
               </div>
 
               <div className="text-left">
-                <label className="block text-[11px] font-black text-slate-400 mb-3 ml-1 uppercase tracking-[0.2em]">Họ tên nhân sự</label>
+                <label className="block text-[11px] font-black text-slate-400 mb-3 ml-1 uppercase tracking-[0.2em] text-left">Họ tên nhân sự</label>
                 <SearchableSelect
                   options={workersInFarm}
                   value={selectedWorker}
                   onChange={setSelectedWorker}
-                  placeholder={!selectedFarm ? 'Đang đợi chọn nông trường...' : 'Gõ tên hoặc số thẻ...'}
+                  placeholder={!selectedFarm ? 'Đang đợi chọn nông trường...' : 'Tìm tên hoặc số thẻ...'}
                   icon={User}
                   disabled={!selectedFarm}
                 />
               </div>
             </section>
 
-            {/* Chỉ số sản lượng */}
             <section className="bg-slate-50 rounded-[2.5rem] p-7 border-2 border-slate-100 shadow-sm relative text-left">
                <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full -mr-16 -mt-16"></div>
-              <h2 className="text-[11px] font-black text-slate-400 mb-6 flex items-center uppercase tracking-[0.2em] relative z-10">
+              <h2 className="text-[11px] font-black text-slate-400 mb-6 flex items-center uppercase tracking-[0.2em] relative z-10 text-left">
                 <AlertCircle className="w-3.5 h-3.5 mr-2 text-emerald-600" /> Sản lượng thực tế (Kg)
               </h2>
               
@@ -313,7 +302,7 @@ export default function App() {
                     <div className={`p-3 rounded-2xl ${item.bg} mb-3 group-hover:scale-110 transition-transform`}>
                        <item.icon className={`w-6 h-6 ${item.color}`} />
                     </div>
-                    <span className="text-[10px] font-black text-slate-400 mb-3 uppercase tracking-tighter">{item.label}</span>
+                    <span className="text-[10px] font-black text-slate-400 mb-3 uppercase tracking-tighter text-center">{item.label}</span>
                     <input
                       type="number" step="0.01" min="0" value={item.state} onChange={(e) => item.setState(e.target.value)}
                       className="w-full text-2xl font-black text-center text-slate-900 focus:outline-none border-b-2 border-transparent focus:border-emerald-500 transition-all placeholder-slate-200 bg-transparent"
@@ -324,16 +313,15 @@ export default function App() {
               </div>
             </section>
 
-            {/* Tính năng Cạo thay - Đã fix lỗi đè và out giao diện */}
-            <section className={`rounded-[2.5rem] border-2 transition-all duration-300 shadow-sm relative ${isSubstitute ? 'bg-emerald-50 border-emerald-400 shadow-lg' : 'bg-white border-slate-100'}`}>
+            <section className={`rounded-[2.5rem] border-2 transition-all duration-300 shadow-sm relative ${isSubstitute ? 'bg-emerald-50 border-emerald-400 shadow-lg shadow-emerald-100' : 'bg-white border-slate-100'}`}>
               <div className="flex items-center justify-between p-6 gap-4">
                 <div className="flex items-center space-x-3 flex-1 min-w-0 text-left">
                    <div className={`p-3.5 rounded-2xl transition-all shadow-sm flex-shrink-0 ${isSubstitute ? 'bg-emerald-600 text-white shadow-emerald-300/30' : 'bg-slate-100 text-slate-400'}`}>
                       <Users size={20} />
                    </div>
                    <div className="flex-1 min-w-0">
-                      <label className="text-sm font-black text-slate-800 block truncate uppercase tracking-tighter">Báo cáo cạo thay</label>
-                      <p className="text-[9px] text-slate-500 font-bold uppercase tracking-tight italic opacity-70 truncate">Hỗ trợ thu hoạch</p>
+                      <label className="text-sm font-black text-slate-800 block truncate uppercase tracking-tighter text-left">Báo cáo cạo thay</label>
+                      <p className="text-[9px] text-slate-500 font-bold uppercase tracking-tight italic opacity-70 truncate text-left">Hỗ trợ thu hoạch</p>
                    </div>
                 </div>
                 <button
@@ -360,7 +348,6 @@ export default function App() {
               )}
             </section>
 
-            {/* Nút gửi hành động */}
             <button
               type="submit"
               disabled={!selectedFarm || !selectedWorker}
@@ -372,22 +359,21 @@ export default function App() {
             </button>
           </form>
 
-          {/* Danh sách dữ liệu chờ (Chỉ hiện khi có data nợ) */}
           {offlineQueue.length > 0 && (
              <section className="mt-12 border-t border-slate-100 pt-8 animate-in fade-in duration-500 text-left">
                 <div className="flex justify-between items-center mb-6">
                    <div className="flex items-center space-x-2 px-1">
                       <Database size={14} className="text-slate-400" />
-                      <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Dữ liệu đang đợi (Local)</h3>
+                      <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-left">Dữ liệu đang đợi (Local)</h3>
                    </div>
                    <button onClick={() => setOfflineQueue([])} className="text-red-400 text-[9px] font-black uppercase hover:text-red-600 transition-colors p-1">Xóa sạch</button>
                 </div>
                 <div className="space-y-4">
                    {offlineQueue.slice(0, 3).map((rec) => (
-                      <div key={rec.tempId} className="bg-slate-50 p-4 rounded-[1.5rem] border border-slate-100 flex justify-between items-center group transition-all hover:bg-white hover:border-emerald-200">
+                      <div key={rec.tempId} className="bg-slate-50 p-4 rounded-[1.5rem] border border-slate-100 flex justify-between items-center group transition-all hover:bg-white hover:border-emerald-200 text-left">
                          <div className="text-left">
-                            <p className="text-xs font-black text-slate-800">{rec.worker}</p>
-                            <p className="text-[9px] text-slate-400 font-bold mt-1 uppercase italic">{rec.time}</p>
+                            <p className="text-xs font-black text-slate-800 text-left">{rec.worker}</p>
+                            <p className="text-[9px] text-slate-400 font-bold mt-1 uppercase italic text-left">{rec.time}</p>
                          </div>
                          <div className="text-right">
                             <div className="flex items-center justify-end space-x-1">
@@ -397,7 +383,6 @@ export default function App() {
                          </div>
                       </div>
                    ))}
-                   {offlineQueue.length > 3 && <p className="text-[10px] text-slate-400 italic text-center font-bold mt-4">... cùng {offlineQueue.length - 3} bản ghi khác</p>}
                 </div>
              </section>
           )}
@@ -408,20 +393,10 @@ export default function App() {
                 <span className="text-[10px] font-black uppercase tracking-[0.5em] italic">Hybrid Offline Solution</span>
                 <div className="h-px w-10 bg-slate-200"></div>
              </div>
-             <p className="text-[11px] text-slate-400 font-black uppercase tracking-widest italic text-center">Tư vấn giải pháp: Luân - Base.vn</p>
-             <p className="text-[9px] text-slate-300 mt-2 font-medium italic text-center">Giải pháp tối ưu cho nông nghiệp vùng sóng yếu</p>
+             <p className="text-[11px] text-slate-400 font-black uppercase tracking-widest italic text-center leading-relaxed">Tư vấn giải pháp: Luân - Base.vn <br/> Proof of Concept (v2.2)</p>
           </footer>
         </main>
       </div>
-      <style>{`
-        @keyframes spin-slow {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-        .animate-spin-slow {
-          animation: spin-slow 3s linear infinite;
-        }
-      `}</style>
     </div>
   );
 }
