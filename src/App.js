@@ -2,9 +2,9 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { MapPin, User, Users, Droplet, Package, Layers, GitCommit, Save, Check, AlertCircle, ChevronDown, Search, ShieldCheck, Smartphone, Wifi, WifiOff, RefreshCw, Database, Send, X, TrendingUp } from 'lucide-react';
 
 /**
- * NHẬP SẢN LƯỢNG CAO SU - PHIÊN BẢN TẬP ĐOÀN (v4.2)
+ * NHẬP SẢN LƯỢNG CAO SU - PHIÊN BẢN TẬP ĐOÀN (v4.3)
  * Consultant: Luân - Base.vn
- * Logic: Smart Sync (Online -> Push, Offline -> Queue -> Auto Sync)
+ * Logic: Ultra-Stable PWA (Đảm bảo mở App ngay cả khi không có mạng)
  */
 
 const FARMS = Array.from({ length: 35 }, (_, i) => `NT${i + 1}`);
@@ -52,7 +52,7 @@ const SearchableSelect = ({ options, value, onChange, placeholder, icon: Icon, d
               <input
                 type="text"
                 className="w-full pl-9 pr-4 py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm bg-white text-left"
-                placeholder="Gõ để tìm nhanh..."
+                placeholder="Tìm nhanh..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 onClick={(e) => e.stopPropagation()}
@@ -110,6 +110,7 @@ export default function App() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [showPwaTip, setShowPwaTip] = useState(false);
+  const [isSWRegistered, setIsSWRegistered] = useState(false);
 
   const inputRefs = {
     water: useRef(),
@@ -125,7 +126,6 @@ export default function App() {
     return (water * 0.7).toFixed(1);
   }, [latexWater]);
 
-  // HÀM ĐỒNG BỘ TOÀN BỘ HÀNG ĐỢI
   const handleSyncAll = async (queueToSync = offlineQueue) => {
     if (queueToSync.length === 0 || !navigator.onLine || isSyncing) return;
     
@@ -140,14 +140,12 @@ export default function App() {
           if (key !== 'tempId') payload.append(key, record[key]);
         });
 
-        // Sử dụng chế độ no-cors để gửi dữ liệu đi một cách nhẹ nhàng
         await fetch(SCRIPT_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
           body: payload,
           mode: 'no-cors'
         });
-        // Gửi thành công, record này sẽ không vào danh sách failed
       } catch (err) {
         failed.push(record);
       }
@@ -163,15 +161,30 @@ export default function App() {
   };
 
   useEffect(() => {
+    // ĐĂNG KÝ SERVICE WORKER VÀ KIỂM TRA TRẠNG THÁI
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/service-worker.js').catch(err => console.log('SW Fail:', err));
+        navigator.serviceWorker.register('/service-worker.js')
+          .then(reg => {
+            console.log('SW Registered');
+            setIsSWRegistered(true);
+            
+            // Tự động reload nếu có bản cập nhật mới để đảm bảo Cache được làm mới
+            reg.onupdatefound = () => {
+              const installingWorker = reg.installing;
+              installingWorker.onstatechange = () => {
+                if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  window.location.reload();
+                }
+              };
+            };
+          })
+          .catch(err => console.log('SW Fail:', err));
       });
     }
 
     const handleOnline = () => {
       setIsOnline(true);
-      // Tự động đồng bộ khi phát hiện có mạng lại
       handleSyncAll();
     };
     const handleOffline = () => setIsOnline(false);
@@ -183,11 +196,12 @@ export default function App() {
     setOfflineQueue(savedQueue);
 
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
-    if (!isStandalone && window.innerWidth < 768) {
-        setTimeout(() => setShowPwaTip(true), 3000);
+    // Chỉ hiện gợi ý nếu chưa cài đặt và đang ở mobile
+    if (!isStandalone && /iPhone|Android/i.test(navigator.userAgent)) {
+        setTimeout(() => setShowPwaTip(true), 2000);
     }
     
-    // VRG Branding SVG Base64
+    // VRG Branding Official
     if (!document.getElementById('vrg-official-branding')) {
       const svgIcon = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj4KICA8cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgcng9IjI0IiBmaWxsPSIjMDA5MjQ1Ii8+CiAgPHBhdGggZD0iTTUwIDIwIEM0MCA0MCAzOCA2NSA1MCA4NSBDNjIgNjUgNjAgNDAgNTAgMjAgWiIgZmlsbD0id2hpdGUiLz4KICA8cGF0aCBkPSJNNjQgMzAgQzczIDQ1IDY4IDY1IDU1IDc4IEM2MCA2NSA2NSA1MCA2NCAzMCBaIiBmaWxsPSJ3aGl0ZSIgb3BhY2l0eT0iMC45Ii8+CiAgPHBhdGggZD0iTTM2IDMwIEMyNyA0NSAzMiA2NSA0NSA3OCBDNDAgNjUgMzUgNTAgMzYgMzAgWiIgZmlsbD0id2hpdGUiIG9wYWNpdHk9IjAuOSIvPgo8L3N2Zz4=";
       const appleIcon = document.createElement('link');
@@ -195,6 +209,11 @@ export default function App() {
       appleIcon.rel = 'apple-touch-icon';
       appleIcon.href = svgIcon;
       document.head.appendChild(appleIcon);
+      const iconLink = document.createElement('link');
+      iconLink.rel = 'icon';
+      iconLink.type = "image/svg+xml";
+      iconLink.href = svgIcon;
+      document.head.appendChild(iconLink);
     }
 
     return () => {
@@ -203,7 +222,6 @@ export default function App() {
     };
   }, []);
 
-  // Cập nhật LocalStorage mỗi khi hàng đợi thay đổi
   useEffect(() => {
     localStorage.setItem('vrg_v4_cache', JSON.stringify(offlineQueue));
   }, [offlineQueue]);
@@ -237,14 +255,11 @@ export default function App() {
       time: new Date().toLocaleString('vi-VN')
     };
 
-    // BƯỚC 1: Luôn đưa vào hàng đợi trước để đảm bảo an toàn dữ liệu
     const updatedQueue = [newRecord, ...offlineQueue];
     setOfflineQueue(updatedQueue);
 
-    // Xóa form
     setSelectedWorker(''); setLatexWater(''); setLatexTap(''); setLatexDong(''); setLatexScrap(''); setIsSubstitute(false); setSubstituteWorker('');
     
-    // BƯỚC 2: Thử đồng bộ ngay lập tức nếu đang có mạng
     if (navigator.onLine) {
       handleSyncAll(updatedQueue);
     }
@@ -258,14 +273,15 @@ export default function App() {
     <div className="min-h-screen bg-slate-100 font-sans text-slate-900 flex justify-center selection:bg-emerald-100 text-left">
       <div className="w-full max-w-md bg-white min-h-screen shadow-2xl relative flex flex-col border-x border-slate-200 text-left">
         
+        {/* PWA Gợi ý cài đặt - Bắt buộc cho iOS Offline */}
         {showPwaTip && (
-           <div className="fixed bottom-6 left-6 right-6 z-[3000] bg-slate-900 text-white p-5 rounded-[2rem] shadow-2xl border border-white/10 animate-in slide-in-from-bottom duration-700 text-left">
+           <div className="fixed bottom-6 left-6 right-6 z-[3000] bg-slate-900 text-white p-6 rounded-[2.5rem] shadow-2xl border border-white/10 animate-in slide-in-from-bottom duration-700 text-left">
               <div className="flex items-start space-x-4 text-left">
-                 <div className="bg-emerald-600 p-3 rounded-2xl flex-shrink-0 shadow-lg text-white text-left"><Smartphone size={24} /></div>
-                 <div className="flex-1 text-left text-left">
-                    <p className="text-xs font-black uppercase text-emerald-400 italic tracking-widest text-left">Cài đặt App VRG</p>
+                 <div className="bg-emerald-600 p-3.5 rounded-2xl flex-shrink-0 shadow-lg text-white text-left"><Smartphone size={24} /></div>
+                 <div className="flex-1 text-left">
+                    <p className="text-xs font-black uppercase text-emerald-400 italic tracking-widest text-left">Kích hoạt Offline</p>
                     <p className="text-[11px] mt-1 text-slate-300 italic leading-relaxed font-medium text-left">
-                       Nhấn <span className="text-white font-bold underline">Chia sẻ</span> {"->"} <span className="text-white font-bold underline">"Thêm vào MH chính"</span> để mở App không cần mạng.
+                       Để dùng App giữa rừng (không mạng), anh hãy nhấn {"\u2192"} <span className="text-white font-bold underline">Chia sẻ</span> {"\u2192"} <span className="text-white font-bold underline">Thêm vào MH chính</span>.
                     </p>
                  </div>
                  <button onClick={() => setShowPwaTip(false)} className="text-slate-500 p-1 text-left"><X size={16}/></button>
@@ -290,21 +306,26 @@ export default function App() {
              </div>
              <div className="text-left">
                 <h1 className="text-2xl font-black tracking-tight leading-tight uppercase italic text-left">NHẬP SẢN LƯỢNG <br/> TỪ NÔNG TRƯỜNG</h1>
-                <p className="text-emerald-50 text-[10px] font-bold opacity-80 mt-1 uppercase tracking-widest italic text-left">Smart Sync Edition - v4.2</p>
+                <p className="text-emerald-50 text-[10px] font-bold opacity-80 mt-1 uppercase tracking-widest italic text-left">Smart Sync Edition - v4.3</p>
              </div>
+          </div>
+          
+          {/* TRẠNG THÁI CACHE - GIÚP ANH BIẾT APP ĐÃ "NHẬP KHO" XONG CHƯA */}
+          <div className="mt-4 flex items-center space-x-2 text-[9px] font-bold opacity-60">
+             <Database size={10} />
+             <span>{isSWRegistered ? "Hệ thống Offline đã sẵn sàng" : "Đang nạp dữ liệu Offline..."}</span>
           </div>
         </header>
 
-        {/* TRẠNG THÁI HÀNG ĐỢI - HIỂN THỊ KHI CÓ DỮ LIỆU CHƯA ĐỒNG BỘ */}
         {offlineQueue.length > 0 && (
           <div className={`p-4 flex items-center justify-between shadow-lg z-[60] animate-in slide-in-from-top duration-300 ${isSyncing ? 'bg-emerald-600 text-white' : 'bg-amber-500 text-white'}`}>
              <div className="flex items-center space-x-3 text-left leading-tight text-left">
                 <div className={`p-2.5 rounded-2xl text-left ${isSyncing ? 'animate-spin bg-emerald-500' : 'bg-amber-600 shadow-md'}`}><RefreshCw size={18} /></div>
-                <div className="text-left"><p className="text-[11px] font-black uppercase tracking-tighter text-left">{isSyncing ? 'Đang đồng bộ...' : `Chưa nộp ${offlineQueue.length} bản ghi`}</p><p className="text-[10px] font-bold opacity-80 text-left">{isOnline ? 'Nhấn để nộp ngay' : 'Sẽ tự nộp khi có sóng'}</p></div>
+                <div className="text-left"><p className="text-[11px] font-black uppercase tracking-tighter text-left">{isSyncing ? 'Đang nộp số...' : `Chưa nộp ${offlineQueue.length} bản ghi`}</p><p className="text-[10px] font-bold opacity-80 text-left">{isOnline ? 'Nhấn để nộp ngay' : 'Sẽ tự nộp khi có mạng'}</p></div>
              </div>
              {isOnline && !isSyncing && (
                <button onClick={() => handleSyncAll()} className="bg-white text-amber-600 px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase shadow-xl active:scale-95 transition-all flex items-center text-left">
-                 <Send size={12} className="mr-2 text-left" /> Nộp số
+                 <Send size={12} className="mr-2 text-left" /> Nộp ngay
                </button>
              )}
           </div>
@@ -383,7 +404,7 @@ export default function App() {
           </form>
 
           <footer className="mt-20 text-center pb-12 border-t border-slate-100 pt-10 text-left text-left">
-             <p className="text-[11px] text-slate-400 font-black uppercase tracking-widest italic text-center leading-relaxed font-bold text-left text-left">Solution by Consultant: Luân - Base.vn <br/> Smart Sync PoC v4.2</p>
+             <p className="text-[11px] text-slate-400 font-black uppercase tracking-widest italic text-center leading-relaxed font-bold text-left text-left">Solution by Consultant: Luân - Base.vn <br/> VRG Official Group Edition v4.3</p>
           </footer>
         </main>
       </div>
