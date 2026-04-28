@@ -1,10 +1,10 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { MapPin, User, Users, Droplet, Package, Layers, GitCommit, Save, Check, AlertCircle, ChevronDown, Search, ShieldCheck, Smartphone, Wifi, WifiOff, RefreshCw, Database, Send, X, TrendingUp } from 'lucide-react';
+import { MapPin, User, Users, Droplet, Package, Layers, GitCommit, Save, Check, AlertCircle, ChevronDown, Search, ShieldCheck, Smartphone, Wifi, WifiOff, RefreshCw, Database, Send, X, TrendingUp, Info } from 'lucide-react';
 
 /**
- * NHẬP SẢN LƯỢNG CAO SU - PHIÊN BẢN TẬP ĐOÀN (v4.3)
+ * NHẬP SẢN LƯỢNG CAO SU - PHIÊN BẢN TẬP ĐOÀN (v4.4)
  * Consultant: Luân - Base.vn
- * Logic: Ultra-Stable PWA (Đảm bảo mở App ngay cả khi không có mạng)
+ * Logic: Hệ thống kiểm soát trạng thái Offline (Offline Readiness Control)
  */
 
 const FARMS = Array.from({ length: 35 }, (_, i) => `NT${i + 1}`);
@@ -110,7 +110,7 @@ export default function App() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [showPwaTip, setShowPwaTip] = useState(false);
-  const [isSWRegistered, setIsSWRegistered] = useState(false);
+  const [offlineStatus, setOfflineStatus] = useState('checking'); // 'checking' | 'ready' | 'fail'
 
   const inputRefs = {
     water: useRef(),
@@ -161,26 +161,33 @@ export default function App() {
   };
 
   useEffect(() => {
-    // ĐĂNG KÝ SERVICE WORKER VÀ KIỂM TRA TRẠNG THÁI
+    // ĐĂNG KÝ VÀ THEO DÕI SERVICE WORKER
     if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/service-worker.js')
-          .then(reg => {
-            console.log('SW Registered');
-            setIsSWRegistered(true);
-            
-            // Tự động reload nếu có bản cập nhật mới để đảm bảo Cache được làm mới
-            reg.onupdatefound = () => {
-              const installingWorker = reg.installing;
-              installingWorker.onstatechange = () => {
-                if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                  window.location.reload();
+      navigator.serviceWorker.register('/service-worker.js')
+        .then(reg => {
+          console.log('SW Registered');
+          // Kiểm tra xem SW đã Active hay chưa
+          if (reg.active) {
+            setOfflineStatus('ready');
+          }
+          
+          reg.onupdatefound = () => {
+            const installingWorker = reg.installing;
+            installingWorker.onstatechange = () => {
+              if (installingWorker.state === 'installed') {
+                setOfflineStatus('ready');
+                if (navigator.serviceWorker.controller) {
+                    // Refresh nếu có bản cập nhật
+                    window.location.reload();
                 }
-              };
+              }
             };
-          })
-          .catch(err => console.log('SW Fail:', err));
-      });
+          };
+        })
+        .catch(err => {
+          console.log('SW Fail:', err);
+          setOfflineStatus('fail');
+        });
     }
 
     const handleOnline = () => {
@@ -196,26 +203,10 @@ export default function App() {
     setOfflineQueue(savedQueue);
 
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
-    // Chỉ hiện gợi ý nếu chưa cài đặt và đang ở mobile
     if (!isStandalone && /iPhone|Android/i.test(navigator.userAgent)) {
         setTimeout(() => setShowPwaTip(true), 2000);
     }
     
-    // VRG Branding Official
-    if (!document.getElementById('vrg-official-branding')) {
-      const svgIcon = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj4KICA8cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgcng9IjI0IiBmaWxsPSIjMDA5MjQ1Ii8+CiAgPHBhdGggZD0iTTUwIDIwIEM0MCA0MCAzOCA2NSA1MCA4NSBDNjIgNjUgNjAgNDAgNTAgMjAgWiIgZmlsbD0id2hpdGUiLz4KICA8cGF0aCBkPSJNNjQgMzAgQzczIDQ1IDY4IDY1IDU1IDc4IEM2MCA2NSA2NSA1MCA2NCAzMCBaIiBmaWxsPSJ3aGl0ZSIgb3BhY2l0eT0iMC45Ii8+CiAgPHBhdGggZD0iTTM2IDMwIEMyNyA0NSAzMiA2NSA0NSA3OCBDNDAgNjUgMzUgNTAgMzYgMzAgWiIgZmlsbD0id2hpdGUiIG9wYWNpdHk9IjAuOSIvPgo8L3N2Zz4=";
-      const appleIcon = document.createElement('link');
-      appleIcon.id = 'vrg-official-branding';
-      appleIcon.rel = 'apple-touch-icon';
-      appleIcon.href = svgIcon;
-      document.head.appendChild(appleIcon);
-      const iconLink = document.createElement('link');
-      iconLink.rel = 'icon';
-      iconLink.type = "image/svg+xml";
-      iconLink.href = svgIcon;
-      document.head.appendChild(iconLink);
-    }
-
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
@@ -273,15 +264,15 @@ export default function App() {
     <div className="min-h-screen bg-slate-100 font-sans text-slate-900 flex justify-center selection:bg-emerald-100 text-left">
       <div className="w-full max-w-md bg-white min-h-screen shadow-2xl relative flex flex-col border-x border-slate-200 text-left">
         
-        {/* PWA Gợi ý cài đặt - Bắt buộc cho iOS Offline */}
+        {/* PWA Gợi ý cài đặt */}
         {showPwaTip && (
            <div className="fixed bottom-6 left-6 right-6 z-[3000] bg-slate-900 text-white p-6 rounded-[2.5rem] shadow-2xl border border-white/10 animate-in slide-in-from-bottom duration-700 text-left">
               <div className="flex items-start space-x-4 text-left">
                  <div className="bg-emerald-600 p-3.5 rounded-2xl flex-shrink-0 shadow-lg text-white text-left"><Smartphone size={24} /></div>
                  <div className="flex-1 text-left">
-                    <p className="text-xs font-black uppercase text-emerald-400 italic tracking-widest text-left">Kích hoạt Offline</p>
+                    <p className="text-xs font-black uppercase text-emerald-400 italic tracking-widest text-left">Kiểm chứng Offline</p>
                     <p className="text-[11px] mt-1 text-slate-300 italic leading-relaxed font-medium text-left">
-                       Để dùng App giữa rừng (không mạng), anh hãy nhấn {"\u2192"} <span className="text-white font-bold underline">Chia sẻ</span> {"\u2192"} <span className="text-white font-bold underline">Thêm vào MH chính</span>.
+                       Nhấn {"\u2192"} <span className="text-white font-bold underline">Chia sẻ</span> {"\u2192"} <span className="text-white font-bold underline">Thêm vào MH chính</span>. Đây là bước để "biến Web thành App".
                     </p>
                  </div>
                  <button onClick={() => setShowPwaTip(false)} className="text-slate-500 p-1 text-left"><X size={16}/></button>
@@ -306,14 +297,28 @@ export default function App() {
              </div>
              <div className="text-left">
                 <h1 className="text-2xl font-black tracking-tight leading-tight uppercase italic text-left">NHẬP SẢN LƯỢNG <br/> TỪ NÔNG TRƯỜNG</h1>
-                <p className="text-emerald-50 text-[10px] font-bold opacity-80 mt-1 uppercase tracking-widest italic text-left">Smart Sync Edition - v4.3</p>
+                <p className="text-emerald-50 text-[10px] font-bold opacity-80 mt-1 uppercase tracking-widest italic text-left">Offline Control Center - v4.4</p>
              </div>
           </div>
           
-          {/* TRẠNG THÁI CACHE - GIÚP ANH BIẾT APP ĐÃ "NHẬP KHO" XONG CHƯA */}
-          <div className="mt-4 flex items-center space-x-2 text-[9px] font-bold opacity-60">
-             <Database size={10} />
-             <span>{isSWRegistered ? "Hệ thống Offline đã sẵn sàng" : "Đang nạp dữ liệu Offline..."}</span>
+          {/* PHẦN KIỂM SOÁT TẦNG BẢN CHẤT - GIÚP ANH LUÂN TỰ TIN KHI DEMO */}
+          <div className="mt-4 bg-black/20 backdrop-blur-md rounded-2xl p-4 border border-white/10 text-left relative z-10">
+             <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center space-x-2">
+                   <Database size={12} className="text-emerald-300" />
+                   <span className="text-[10px] font-black uppercase tracking-wider text-emerald-100">Kiểm tra động cơ Offline</span>
+                </div>
+                {offlineStatus === 'ready' ? 
+                  <span className="bg-emerald-500/30 text-emerald-200 px-2 py-0.5 rounded-full text-[8px] font-bold border border-emerald-500/50">SẴN SÀNG</span> : 
+                  <span className="bg-amber-500/30 text-amber-200 px-2 py-0.5 rounded-full text-[8px] font-bold border border-amber-500/50 animate-pulse">ĐANG NẠP...</span>
+                }
+             </div>
+             <p className="text-[9px] text-white/60 font-medium italic leading-relaxed text-left">
+                {offlineStatus === 'ready' ? 
+                  "Xăng đã vào bình! Giờ anh có thể Tắt mạng và mở App từ Màn hình chính để trải nghiệm thực tế." : 
+                  "Đang sao chép mã nguồn vào bộ nhớ máy. Vui lòng giữ kết nối trong vài giây..."
+                }
+             </p>
           </div>
         </header>
 
@@ -351,15 +356,15 @@ export default function App() {
 
             <section className="bg-slate-50 rounded-[2rem] p-7 border-2 border-slate-100 shadow-sm relative text-left">
               <h2 className="text-[11px] font-black text-slate-400 mb-6 flex items-center uppercase tracking-[0.2em] relative z-10 text-left font-bold"><AlertCircle size={14} className="mr-2 text-emerald-600 text-left" /> Nhập sản lượng thực tế (KG)</h2>
-              <div className="grid grid-cols-2 gap-4 relative z-10 text-left">
+              <div className="grid grid-cols-2 gap-4 relative z-10 text-left text-left text-left">
                 {[
                   { id: 'water', label: 'Mủ Nước', icon: Droplet, color: 'text-blue-600', state: latexWater, setState: setLatexWater, bg: 'bg-blue-50', ref: inputRefs.water, next: inputRefs.tap },
                   { id: 'tap', label: 'Mủ Tạp', icon: Layers, color: 'text-orange-600', state: latexTap, setState: setLatexTap, bg: 'bg-orange-50', ref: inputRefs.tap, next: inputRefs.dong },
                   { id: 'dong', label: 'Mủ Đông', icon: Package, color: 'text-indigo-600', state: latexDong, setState: setLatexDong, bg: 'bg-indigo-50', ref: inputRefs.dong, next: inputRefs.scrap },
                   { id: 'scrap', label: 'Mủ Dây', icon: GitCommit, color: 'text-slate-600', state: latexScrap, setState: setLatexScrap, bg: 'bg-slate-50', ref: inputRefs.scrap, next: null },
                 ].map(item => (
-                  <div key={item.id} className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 flex flex-col items-center group active:scale-95 transition-all hover:border-emerald-500 text-left">
-                    <div className={`p-3 rounded-2xl ${item.bg} mb-3 group-hover:scale-110 transition-transform text-left`}><item.icon className={`w-6 h-6 ${item.color} text-left`} /></div>
+                  <div key={item.id} className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 flex flex-col items-center group active:scale-95 transition-all hover:border-emerald-500 text-left text-left text-left text-left">
+                    <div className={`p-3 rounded-2xl ${item.bg} mb-3 group-hover:scale-110 transition-transform text-left text-left`}><item.icon className={`w-6 h-6 ${item.color} text-left`} /></div>
                     <span className="text-[10px] font-black text-slate-400 mb-3 uppercase tracking-tighter text-center text-left font-bold">{item.label}</span>
                     <input ref={item.ref} type="tel" pattern="[0-9]*" value={item.state} onChange={(e) => handleIntInput(e.target.value, item.setState)}
                       onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); if (item.next && item.next.current) item.next.current.focus(); else handleSubmit(); }}}
@@ -404,7 +409,7 @@ export default function App() {
           </form>
 
           <footer className="mt-20 text-center pb-12 border-t border-slate-100 pt-10 text-left text-left">
-             <p className="text-[11px] text-slate-400 font-black uppercase tracking-widest italic text-center leading-relaxed font-bold text-left text-left">Solution by Consultant: Luân - Base.vn <br/> VRG Official Group Edition v4.3</p>
+             <p className="text-[11px] text-slate-400 font-black uppercase tracking-widest italic text-center leading-relaxed font-bold text-left text-left">Solution by Consultant: Luân - Base.vn <br/> VRG Official Group Edition v4.4</p>
           </footer>
         </main>
       </div>
