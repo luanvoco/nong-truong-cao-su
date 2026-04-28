@@ -1,10 +1,10 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { MapPin, User, Users, Droplet, Package, Layers, GitCommit, Save, Check, AlertCircle, ChevronDown, Search, ShieldCheck, Smartphone, Wifi, WifiOff, RefreshCw, Database, Send, X, TrendingUp, Info } from 'lucide-react';
+import { MapPin, User, Users, Droplet, Package, Layers, GitCommit, Save, Check, AlertCircle, ChevronDown, Search, ShieldCheck, Smartphone, Wifi, WifiOff, RefreshCw, Database, Send, X, TrendingUp, Info, AlertTriangle } from 'lucide-react';
 
 /**
- * NHẬP SẢN LƯỢNG CAO SU - PHIÊN BẢN TẬP ĐOÀN (v4.4)
+ * NHẬP SẢN LƯỢNG CAO SU - PHIÊN BẢN TẬP ĐOÀN (v4.6)
  * Consultant: Luân - Base.vn
- * Logic: Hệ thống kiểm soát trạng thái Offline (Offline Readiness Control)
+ * Logic: Fixed URL Protocol Error & Enhanced Offline Diagnostics
  */
 
 const FARMS = Array.from({ length: 35 }, (_, i) => `NT${i + 1}`);
@@ -110,7 +110,8 @@ export default function App() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [showPwaTip, setShowPwaTip] = useState(false);
-  const [offlineStatus, setOfflineStatus] = useState('checking'); // 'checking' | 'ready' | 'fail'
+  const [offlineStatus, setOfflineStatus] = useState('checking'); // 'checking' | 'ready' | 'fail' | 'limited'
+  const [swError, setSwError] = useState('');
 
   const inputRefs = {
     water: useRef(),
@@ -161,12 +162,14 @@ export default function App() {
   };
 
   useEffect(() => {
-    // ĐĂNG KÝ VÀ THEO DÕI SERVICE WORKER
-    if ('serviceWorker' in navigator) {
+    // KIỂM TRA GIAO THỨC TRƯỚC KHI ĐĂNG KÝ SW
+    const protocol = window.location.protocol;
+    const isSupportedProtocol = protocol === 'http:' || protocol === 'https:';
+
+    if ('serviceWorker' in navigator && isSupportedProtocol) {
       navigator.serviceWorker.register('/service-worker.js')
         .then(reg => {
           console.log('SW Registered');
-          // Kiểm tra xem SW đã Active hay chưa
           if (reg.active) {
             setOfflineStatus('ready');
           }
@@ -176,18 +179,22 @@ export default function App() {
             installingWorker.onstatechange = () => {
               if (installingWorker.state === 'installed') {
                 setOfflineStatus('ready');
-                if (navigator.serviceWorker.controller) {
-                    // Refresh nếu có bản cập nhật
-                    window.location.reload();
-                }
               }
             };
           };
         })
         .catch(err => {
-          console.log('SW Fail:', err);
+          console.error('SW Fail:', err);
           setOfflineStatus('fail');
+          setSwError(err.message);
         });
+    } else if (!isSupportedProtocol) {
+        // Môi trường blob: hoặc file: (Preview mode)
+        setOfflineStatus('limited');
+        setSwError('Preview mode: Offline engine will work after deploy.');
+    } else {
+        setOfflineStatus('fail');
+        setSwError('Trình duyệt không hỗ trợ Offline');
     }
 
     const handleOnline = () => {
@@ -264,13 +271,12 @@ export default function App() {
     <div className="min-h-screen bg-slate-100 font-sans text-slate-900 flex justify-center selection:bg-emerald-100 text-left">
       <div className="w-full max-w-md bg-white min-h-screen shadow-2xl relative flex flex-col border-x border-slate-200 text-left">
         
-        {/* PWA Gợi ý cài đặt */}
         {showPwaTip && (
            <div className="fixed bottom-6 left-6 right-6 z-[3000] bg-slate-900 text-white p-6 rounded-[2.5rem] shadow-2xl border border-white/10 animate-in slide-in-from-bottom duration-700 text-left">
               <div className="flex items-start space-x-4 text-left">
                  <div className="bg-emerald-600 p-3.5 rounded-2xl flex-shrink-0 shadow-lg text-white text-left"><Smartphone size={24} /></div>
                  <div className="flex-1 text-left">
-                    <p className="text-xs font-black uppercase text-emerald-400 italic tracking-widest text-left">Kiểm chứng Offline</p>
+                    <p className="text-xs font-black uppercase text-emerald-400 italic tracking-widest text-left">Kích hoạt Offline</p>
                     <p className="text-[11px] mt-1 text-slate-300 italic leading-relaxed font-medium text-left">
                        Nhấn {"\u2192"} <span className="text-white font-bold underline">Chia sẻ</span> {"\u2192"} <span className="text-white font-bold underline">Thêm vào MH chính</span>. Đây là bước để "biến Web thành App".
                     </p>
@@ -297,26 +303,33 @@ export default function App() {
              </div>
              <div className="text-left">
                 <h1 className="text-2xl font-black tracking-tight leading-tight uppercase italic text-left">NHẬP SẢN LƯỢNG <br/> TỪ NÔNG TRƯỜNG</h1>
-                <p className="text-emerald-50 text-[10px] font-bold opacity-80 mt-1 uppercase tracking-widest italic text-left">Offline Control Center - v4.4</p>
+                <p className="text-emerald-50 text-[10px] font-bold opacity-80 mt-1 uppercase tracking-widest italic text-left">Offline Control Center - v4.6</p>
              </div>
           </div>
           
-          {/* PHẦN KIỂM SOÁT TẦNG BẢN CHẤT - GIÚP ANH LUÂN TỰ TIN KHI DEMO */}
-          <div className="mt-4 bg-black/20 backdrop-blur-md rounded-2xl p-4 border border-white/10 text-left relative z-10">
+          <div className={`mt-4 backdrop-blur-md rounded-2xl p-4 border text-left relative z-10 transition-all duration-500 ${offlineStatus === 'ready' || offlineStatus === 'limited' ? 'bg-emerald-500/20 border-emerald-500/50' : offlineStatus === 'fail' ? 'bg-red-500/20 border-red-500/50' : 'bg-black/20 border-white/10'}`}>
              <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center space-x-2">
-                   <Database size={12} className="text-emerald-300" />
-                   <span className="text-[10px] font-black uppercase tracking-wider text-emerald-100">Kiểm tra động cơ Offline</span>
+                   {offlineStatus === 'fail' ? <AlertTriangle size={12} className="text-red-300" /> : <Database size={12} className="text-emerald-300" />}
+                   <span className="text-[10px] font-black uppercase tracking-wider text-white">Kiểm tra động cơ Offline</span>
                 </div>
                 {offlineStatus === 'ready' ? 
-                  <span className="bg-emerald-500/30 text-emerald-200 px-2 py-0.5 rounded-full text-[8px] font-bold border border-emerald-500/50">SẴN SÀNG</span> : 
+                  <span className="bg-emerald-500 text-white px-2 py-0.5 rounded-full text-[8px] font-bold">SẴN SÀNG</span> : 
+                  offlineStatus === 'limited' ?
+                  <span className="bg-blue-500 text-white px-2 py-0.5 rounded-full text-[8px] font-bold">PREVIEW</span> :
+                  offlineStatus === 'fail' ? 
+                  <span className="bg-red-500 text-white px-2 py-0.5 rounded-full text-[8px] font-bold">LỖI NẠP</span> :
                   <span className="bg-amber-500/30 text-amber-200 px-2 py-0.5 rounded-full text-[8px] font-bold border border-amber-500/50 animate-pulse">ĐANG NẠP...</span>
                 }
              </div>
-             <p className="text-[9px] text-white/60 font-medium italic leading-relaxed text-left">
+             <p className="text-[9px] text-white/80 font-medium italic leading-relaxed text-left">
                 {offlineStatus === 'ready' ? 
-                  "Xăng đã vào bình! Giờ anh có thể Tắt mạng và mở App từ Màn hình chính để trải nghiệm thực tế." : 
-                  "Đang sao chép mã nguồn vào bộ nhớ máy. Vui lòng giữ kết nối trong vài giây..."
+                  "Dữ liệu đã nằm trong bộ nhớ điện thoại! Anh có thể Tắt mạng và mở App từ Màn hình chính." : 
+                  offlineStatus === 'limited' ?
+                  "Anh đang xem ở chế độ Thử nghiệm. Tính năng Offline sẽ tự kích hoạt sau khi anh đẩy code lên GitHub." :
+                  offlineStatus === 'fail' ?
+                  `Lỗi: ${swError || "Không tìm thấy service-worker.js"}.` :
+                  "Đang sao chép mã nguồn vào máy. Vui lòng giữ mạng trong 3-5 giây..."
                 }
              </p>
           </div>
@@ -338,7 +351,7 @@ export default function App() {
 
         <div className={`fixed top-12 left-1/2 transform -translate-x-1/2 bg-white/95 backdrop-blur-md border-2 border-emerald-500 text-emerald-800 px-10 py-5 rounded-[2.5rem] flex items-center shadow-2xl transition-all duration-700 z-[9999] text-left ${showSuccess ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 -translate-y-20 scale-90 pointer-events-none'}`}>
           <div className="bg-emerald-500 text-white p-1.5 rounded-full mr-4 text-left"><Check size={16} /></div>
-          <span className="font-black text-sm uppercase tracking-[0.1em] italic text-left">Hệ thống đã nhận số!</span>
+          <span className="font-black text-sm uppercase tracking-[0.1em] italic text-left">Dữ liệu đã về Sheet!</span>
         </div>
 
         <main className="flex-1 overflow-y-auto p-6 pb-32 text-left text-left">
@@ -356,15 +369,15 @@ export default function App() {
 
             <section className="bg-slate-50 rounded-[2rem] p-7 border-2 border-slate-100 shadow-sm relative text-left">
               <h2 className="text-[11px] font-black text-slate-400 mb-6 flex items-center uppercase tracking-[0.2em] relative z-10 text-left font-bold"><AlertCircle size={14} className="mr-2 text-emerald-600 text-left" /> Nhập sản lượng thực tế (KG)</h2>
-              <div className="grid grid-cols-2 gap-4 relative z-10 text-left text-left text-left">
+              <div className="grid grid-cols-2 gap-4 relative z-10 text-left">
                 {[
                   { id: 'water', label: 'Mủ Nước', icon: Droplet, color: 'text-blue-600', state: latexWater, setState: setLatexWater, bg: 'bg-blue-50', ref: inputRefs.water, next: inputRefs.tap },
                   { id: 'tap', label: 'Mủ Tạp', icon: Layers, color: 'text-orange-600', state: latexTap, setState: setLatexTap, bg: 'bg-orange-50', ref: inputRefs.tap, next: inputRefs.dong },
                   { id: 'dong', label: 'Mủ Đông', icon: Package, color: 'text-indigo-600', state: latexDong, setState: setLatexDong, bg: 'bg-indigo-50', ref: inputRefs.dong, next: inputRefs.scrap },
                   { id: 'scrap', label: 'Mủ Dây', icon: GitCommit, color: 'text-slate-600', state: latexScrap, setState: setLatexScrap, bg: 'bg-slate-50', ref: inputRefs.scrap, next: null },
                 ].map(item => (
-                  <div key={item.id} className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 flex flex-col items-center group active:scale-95 transition-all hover:border-emerald-500 text-left text-left text-left text-left">
-                    <div className={`p-3 rounded-2xl ${item.bg} mb-3 group-hover:scale-110 transition-transform text-left text-left`}><item.icon className={`w-6 h-6 ${item.color} text-left`} /></div>
+                  <div key={item.id} className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 flex flex-col items-center group active:scale-95 transition-all hover:border-emerald-500 text-left">
+                    <div className={`p-3 rounded-2xl ${item.bg} mb-3 group-hover:scale-110 transition-transform text-left`}><item.icon className={`w-6 h-6 ${item.color} text-left`} /></div>
                     <span className="text-[10px] font-black text-slate-400 mb-3 uppercase tracking-tighter text-center text-left font-bold">{item.label}</span>
                     <input ref={item.ref} type="tel" pattern="[0-9]*" value={item.state} onChange={(e) => handleIntInput(e.target.value, item.setState)}
                       onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); if (item.next && item.next.current) item.next.current.focus(); else handleSubmit(); }}}
@@ -379,26 +392,10 @@ export default function App() {
                  <div className="bg-emerald-600 text-white p-3 rounded-2xl shadow-lg animate-pulse text-left"><TrendingUp size={20} className="text-left text-left" /></div>
                  <div className="text-left text-left text-left">
                     <p className="text-[10px] font-black uppercase tracking-widest text-emerald-700 italic text-left font-bold">Mủ Quy khô (Tạm tính)</p>
-                    <p className="text-[9px] text-emerald-600 font-bold uppercase tracking-tighter text-left italic text-left font-bold">DRC Tự động (70%)</p>
+                    <p className="text-[9px] text-emerald-600 font-bold uppercase tracking-tighter text-left italic text-left font-bold">Quy đổi 70% chuẩn Tập đoàn VRG</p>
                  </div>
               </div>
               <div className="text-right text-left text-left"><span className="text-3xl font-black text-emerald-900 italic tracking-tighter text-left text-left font-bold">{dryRubberWeight}</span><span className="ml-1 text-[10px] font-black text-emerald-700 uppercase text-left text-left text-left font-bold">KG</span></div>
-            </section>
-
-            <section className={`rounded-[2rem] border-2 transition-all duration-300 shadow-sm relative text-left ${isSubstitute ? 'bg-emerald-50 border-emerald-400 shadow-lg shadow-emerald-100' : 'bg-white border-slate-100'}`}>
-              <div className="flex items-center justify-between p-6 gap-4 text-left">
-                <div className="flex items-center space-x-3 flex-1 min-w-0 text-left">
-                   <div className={`p-3.5 rounded-2xl transition-all shadow-sm flex-shrink-0 text-left ${isSubstitute ? 'bg-emerald-600 text-white shadow-emerald-300/30' : 'bg-slate-100 text-slate-400'}`}><Users size={20} className="text-left text-left" /></div>
-                   <div className="flex-1 min-w-0 text-left leading-tight text-left text-left"><label className="text-sm font-black text-slate-800 block truncate uppercase tracking-tighter text-left font-bold">Báo cáo cạo thay</label><p className="text-[9px] text-slate-500 font-bold uppercase tracking-tight italic opacity-70 truncate text-left font-medium text-left">Ghi chú hỗ trợ thực địa</p></div>
-                </div>
-                <button type="button" onClick={() => setIsSubstitute(!isSubstitute)} disabled={!selectedFarm} className={`relative inline-flex h-8 w-14 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-all duration-300 text-left ${!selectedFarm ? 'opacity-20 cursor-not-allowed' : 'hover:scale-105'} ${isSubstitute ? 'bg-emerald-600' : 'bg-slate-300'}`}><span className={`pointer-events-none inline-block h-7 w-7 transform rounded-full bg-white shadow-lg ring-0 transition-transform duration-300 text-left ${isSubstitute ? 'translate-x-6' : 'translate-x-0'}`} /></button>
-              </div>
-              {isSubstitute && (
-                <div className="px-6 pb-8 animate-in fade-in slide-in-from-top-4 duration-500 text-left text-left">
-                  <div className="h-px bg-emerald-200/50 w-full mb-6 text-left"></div>
-                  <SearchableSelect options={workersInFarm.filter(w => w !== selectedWorker)} value={substituteWorker} onChange={setSubstituteWorker} placeholder="Người được cạo thay..." icon={Users}/>
-                </div>
-              )}
             </section>
 
             <button type="submit" disabled={!selectedFarm || !selectedWorker} className={`w-full text-white font-black py-6 px-6 rounded-[2rem] shadow-2xl flex items-center justify-center transition-all active:scale-95 uppercase tracking-[0.3em] text-sm group relative overflow-hidden text-left ${!selectedFarm || !selectedWorker ? 'bg-slate-300 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20'}`}>
@@ -409,7 +406,7 @@ export default function App() {
           </form>
 
           <footer className="mt-20 text-center pb-12 border-t border-slate-100 pt-10 text-left text-left">
-             <p className="text-[11px] text-slate-400 font-black uppercase tracking-widest italic text-center leading-relaxed font-bold text-left text-left">Solution by Consultant: Luân - Base.vn <br/> VRG Official Group Edition v4.4</p>
+             <p className="text-[11px] text-slate-400 font-black uppercase tracking-widest italic text-center leading-relaxed font-bold text-left text-left">Solution by Consultant: Luân - Base.vn <br/> VRG Official Group Edition v4.6</p>
           </footer>
         </main>
       </div>
