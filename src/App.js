@@ -2,9 +2,9 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { MapPin, User, Users, Droplet, Package, Layers, GitCommit, Save, Check, AlertCircle, ChevronDown, Search, ShieldCheck, Smartphone, Wifi, WifiOff, RefreshCw, Database, Send, X, TrendingUp, Info, AlertTriangle } from 'lucide-react';
 
 /**
- * NHẬP SẢN LƯỢNG CAO SU - PHIÊN BẢN TẬP ĐOÀN (v4.6)
+ * NHẬP SẢN LƯỢNG CAO SU - PHIÊN BẢN TẬP ĐOÀN (v4.7)
  * Consultant: Luân - Base.vn
- * Logic: Fixed URL Protocol Error & Enhanced Offline Diagnostics
+ * Logic: Persistent Offline Engine (Khắc phục lỗi khi mở lại App)
  */
 
 const FARMS = Array.from({ length: 35 }, (_, i) => `NT${i + 1}`);
@@ -162,23 +162,31 @@ export default function App() {
   };
 
   useEffect(() => {
-    // KIỂM TRA GIAO THỨC TRƯỚC KHI ĐĂNG KÝ SW
     const protocol = window.location.protocol;
     const isSupportedProtocol = protocol === 'http:' || protocol === 'https:';
 
     if ('serviceWorker' in navigator && isSupportedProtocol) {
-      navigator.serviceWorker.register('/service-worker.js')
+      // ĐĂNG KÝ SW VỚI SCOPE RỘNG NHẤT
+      navigator.serviceWorker.register('/service-worker.js', { scope: '/' })
         .then(reg => {
           console.log('SW Registered');
+          
+          // Kiểm tra xem SW đã sẵn sàng chưa
           if (reg.active) {
             setOfflineStatus('ready');
           }
-          
+
+          // Lắng nghe các thay đổi trạng thái
           reg.onupdatefound = () => {
             const installingWorker = reg.installing;
             installingWorker.onstatechange = () => {
               if (installingWorker.state === 'installed') {
-                setOfflineStatus('ready');
+                if (navigator.serviceWorker.controller) {
+                    // Có bản cập nhật mới, nạp lại để App luôn mới
+                    window.location.reload();
+                } else {
+                    setOfflineStatus('ready');
+                }
               }
             };
           };
@@ -189,12 +197,8 @@ export default function App() {
           setSwError(err.message);
         });
     } else if (!isSupportedProtocol) {
-        // Môi trường blob: hoặc file: (Preview mode)
         setOfflineStatus('limited');
-        setSwError('Preview mode: Offline engine will work after deploy.');
-    } else {
-        setOfflineStatus('fail');
-        setSwError('Trình duyệt không hỗ trợ Offline');
+        setSwError('Môi trường Preview: Tính năng Offline sẽ chạy sau khi Deploy.');
     }
 
     const handleOnline = () => {
@@ -276,9 +280,9 @@ export default function App() {
               <div className="flex items-start space-x-4 text-left">
                  <div className="bg-emerald-600 p-3.5 rounded-2xl flex-shrink-0 shadow-lg text-white text-left"><Smartphone size={24} /></div>
                  <div className="flex-1 text-left">
-                    <p className="text-xs font-black uppercase text-emerald-400 italic tracking-widest text-left">Kích hoạt Offline</p>
+                    <p className="text-xs font-black uppercase text-emerald-400 italic tracking-widest text-left">LƯU APP VÀO MÁY</p>
                     <p className="text-[11px] mt-1 text-slate-300 italic leading-relaxed font-medium text-left">
-                       Nhấn {"\u2192"} <span className="text-white font-bold underline">Chia sẻ</span> {"\u2192"} <span className="text-white font-bold underline">Thêm vào MH chính</span>. Đây là bước để "biến Web thành App".
+                       Nhấn {"\u2192"} <span className="text-white font-bold underline">Chia sẻ</span> {"\u2192"} <span className="text-white font-bold underline">Thêm vào MH chính</span>. Đây là cách để App chạy bền bỉ khi không mạng.
                     </p>
                  </div>
                  <button onClick={() => setShowPwaTip(false)} className="text-slate-500 p-1 text-left"><X size={16}/></button>
@@ -294,42 +298,38 @@ export default function App() {
                 <span className="text-[11px] uppercase tracking-[0.3em] font-bold text-emerald-100 italic text-left">VRG - TẬP ĐOÀN CAO SU</span>
              </div>
              <div className={`flex items-center space-x-2 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider text-left ${isOnline ? 'bg-emerald-500/20 text-emerald-100 border border-emerald-500/30' : 'bg-red-500/30 text-red-100 border border-red-500/40 animate-pulse'}`}>
-                {isOnline ? <><Wifi size={12} className="mr-1 text-left"/> Trực tuyến</> : <><WifiOff size={12} className="mr-1 text-left"/> Ngoại tuyến</>}
+                {isOnline ? <><Wifi size={12} className="mr-1 text-left"/> Online</> : <><WifiOff size={12} className="mr-1 text-left"/> Offline</>}
              </div>
           </div>
-          <div className="flex items-start space-x-4 relative z-10 mb-4 text-left">
+          <div className="flex items-start space-x-4 relative z-10 mb-4 text-left text-left">
              <div className="bg-white p-2 rounded-2xl shadow-lg flex-shrink-0 text-left">
                 <svg width="42" height="42" viewBox="0 0 100 100"><rect width="100" height="100" rx="20" fill="#009245"/><path d="M50 20 C40 40 38 65 50 85 C62 65 60 40 50 20 Z" fill="white"/><path d="M64 30 C73 45 68 65 55 78 C60 65 65 50 64 30 Z" fill="white" opacity="0.9"/><path d="M36 30 C27 45 32 65 45 78 C40 65 35 50 36 30 Z" fill="white" opacity="0.9"/></svg>
              </div>
-             <div className="text-left">
+             <div className="text-left text-left">
                 <h1 className="text-2xl font-black tracking-tight leading-tight uppercase italic text-left">NHẬP SẢN LƯỢNG <br/> TỪ NÔNG TRƯỜNG</h1>
-                <p className="text-emerald-50 text-[10px] font-bold opacity-80 mt-1 uppercase tracking-widest italic text-left">Offline Control Center - v4.6</p>
+                <p className="text-emerald-50 text-[10px] font-bold opacity-80 mt-1 uppercase tracking-widest italic text-left">Persistent Engine - v4.7</p>
              </div>
           </div>
           
           <div className={`mt-4 backdrop-blur-md rounded-2xl p-4 border text-left relative z-10 transition-all duration-500 ${offlineStatus === 'ready' || offlineStatus === 'limited' ? 'bg-emerald-500/20 border-emerald-500/50' : offlineStatus === 'fail' ? 'bg-red-500/20 border-red-500/50' : 'bg-black/20 border-white/10'}`}>
              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center space-x-2">
-                   {offlineStatus === 'fail' ? <AlertTriangle size={12} className="text-red-300" /> : <Database size={12} className="text-emerald-300" />}
-                   <span className="text-[10px] font-black uppercase tracking-wider text-white">Kiểm tra động cơ Offline</span>
+                <div className="flex items-center space-x-2 text-left">
+                   {offlineStatus === 'fail' ? <AlertTriangle size={12} className="text-red-300 text-left" /> : <Database size={12} className="text-emerald-300 text-left" />}
+                   <span className="text-[10px] font-black uppercase tracking-wider text-white text-left">Đang lưu Cache để dùng khi Offline</span>
                 </div>
                 {offlineStatus === 'ready' ? 
-                  <span className="bg-emerald-500 text-white px-2 py-0.5 rounded-full text-[8px] font-bold">SẴN SÀNG</span> : 
+                  <span className="bg-emerald-500 text-white px-2 py-0.5 rounded-full text-[8px] font-bold">READY</span> : 
                   offlineStatus === 'limited' ?
-                  <span className="bg-blue-500 text-white px-2 py-0.5 rounded-full text-[8px] font-bold">PREVIEW</span> :
-                  offlineStatus === 'fail' ? 
-                  <span className="bg-red-500 text-white px-2 py-0.5 rounded-full text-[8px] font-bold">LỖI NẠP</span> :
-                  <span className="bg-amber-500/30 text-amber-200 px-2 py-0.5 rounded-full text-[8px] font-bold border border-amber-500/50 animate-pulse">ĐANG NẠP...</span>
+                  <span className="bg-blue-500 text-white px-2 py-0.5 rounded-full text-[8px] font-bold text-left">PREVIEW</span> :
+                  <span className="bg-amber-500/30 text-amber-200 px-2 py-0.5 rounded-full text-[8px] font-bold border border-amber-500/50 animate-pulse text-left">SYNCING...</span>
                 }
              </div>
              <p className="text-[9px] text-white/80 font-medium italic leading-relaxed text-left">
                 {offlineStatus === 'ready' ? 
-                  "Dữ liệu đã nằm trong bộ nhớ điện thoại! Anh có thể Tắt mạng và mở App từ Màn hình chính." : 
+                  "Xăng đã nạp đầy! Anh có thể tắt mạng và mở App từ icon màn hình chính." : 
                   offlineStatus === 'limited' ?
-                  "Anh đang xem ở chế độ Thử nghiệm. Tính năng Offline sẽ tự kích hoạt sau khi anh đẩy code lên GitHub." :
-                  offlineStatus === 'fail' ?
-                  `Lỗi: ${swError || "Không tìm thấy service-worker.js"}.` :
-                  "Đang sao chép mã nguồn vào máy. Vui lòng giữ mạng trong 3-5 giây..."
+                  "Chức năng giúp người dùng báo cáo sản lượng khi không có mạng." :
+                  "Đang đăng ký 'Người giữ kho'. Vui lòng đợi trong giây lát..."
                 }
              </p>
           </div>
@@ -338,7 +338,7 @@ export default function App() {
         {offlineQueue.length > 0 && (
           <div className={`p-4 flex items-center justify-between shadow-lg z-[60] animate-in slide-in-from-top duration-300 ${isSyncing ? 'bg-emerald-600 text-white' : 'bg-amber-500 text-white'}`}>
              <div className="flex items-center space-x-3 text-left leading-tight text-left">
-                <div className={`p-2.5 rounded-2xl text-left ${isSyncing ? 'animate-spin bg-emerald-500' : 'bg-amber-600 shadow-md'}`}><RefreshCw size={18} /></div>
+                <div className={`p-2.5 rounded-2xl text-left ${isSyncing ? 'animate-spin bg-emerald-500 text-left' : 'bg-amber-600 shadow-md text-left'}`}><RefreshCw size={18} /></div>
                 <div className="text-left"><p className="text-[11px] font-black uppercase tracking-tighter text-left">{isSyncing ? 'Đang nộp số...' : `Chưa nộp ${offlineQueue.length} bản ghi`}</p><p className="text-[10px] font-bold opacity-80 text-left">{isOnline ? 'Nhấn để nộp ngay' : 'Sẽ tự nộp khi có mạng'}</p></div>
              </div>
              {isOnline && !isSyncing && (
@@ -351,15 +351,15 @@ export default function App() {
 
         <div className={`fixed top-12 left-1/2 transform -translate-x-1/2 bg-white/95 backdrop-blur-md border-2 border-emerald-500 text-emerald-800 px-10 py-5 rounded-[2.5rem] flex items-center shadow-2xl transition-all duration-700 z-[9999] text-left ${showSuccess ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 -translate-y-20 scale-90 pointer-events-none'}`}>
           <div className="bg-emerald-500 text-white p-1.5 rounded-full mr-4 text-left"><Check size={16} /></div>
-          <span className="font-black text-sm uppercase tracking-[0.1em] italic text-left">Dữ liệu đã về Sheet!</span>
+          <span className="font-black text-sm uppercase tracking-[0.1em] italic text-left">Đồng bộ hoàn tất!</span>
         </div>
 
-        <main className="flex-1 overflow-y-auto p-6 pb-32 text-left text-left">
+        <main className="flex-1 overflow-y-auto p-6 pb-32 text-left text-left text-left">
           <form onSubmit={handleSubmit} className="space-y-10 text-left">
             <section className="space-y-6 text-left">
               <div className="text-left group text-left">
-                <label className="block text-[11px] font-black text-slate-400 mb-3 ml-1 uppercase tracking-[0.2em] text-left font-bold">Đơn vị khai thác</label>
-                <SearchableSelect options={FARMS} value={selectedFarm} onChange={handleFarmChange} placeholder="Chọn đơn vị..." icon={MapPin} />
+                <label className="block text-[11px] font-black text-slate-400 mb-3 ml-1 uppercase tracking-[0.2em] text-left font-bold">Đơn vị nông trường</label>
+                <SearchableSelect options={FARMS} value={selectedFarm} onChange={handleFarmChange} placeholder="Chọn nông trường..." icon={MapPin} />
               </div>
               <div className="text-left group text-left text-left">
                 <label className="block text-[11px] font-black text-slate-400 mb-3 ml-1 uppercase tracking-[0.2em] text-left font-bold">Nhân sự thực địa</label>
@@ -368,7 +368,7 @@ export default function App() {
             </section>
 
             <section className="bg-slate-50 rounded-[2rem] p-7 border-2 border-slate-100 shadow-sm relative text-left">
-              <h2 className="text-[11px] font-black text-slate-400 mb-6 flex items-center uppercase tracking-[0.2em] relative z-10 text-left font-bold"><AlertCircle size={14} className="mr-2 text-emerald-600 text-left" /> Nhập sản lượng thực tế (KG)</h2>
+              <h2 className="text-[11px] font-black text-slate-400 mb-6 flex items-center uppercase tracking-[0.2em] relative z-10 text-left font-bold"><AlertCircle size={14} className="mr-2 text-emerald-600 text-left" /> Sản lượng khai thác (KG)</h2>
               <div className="grid grid-cols-2 gap-4 relative z-10 text-left">
                 {[
                   { id: 'water', label: 'Mủ Nước', icon: Droplet, color: 'text-blue-600', state: latexWater, setState: setLatexWater, bg: 'bg-blue-50', ref: inputRefs.water, next: inputRefs.tap },
@@ -391,8 +391,8 @@ export default function App() {
               <div className="flex items-center space-x-4 text-left">
                  <div className="bg-emerald-600 text-white p-3 rounded-2xl shadow-lg animate-pulse text-left"><TrendingUp size={20} className="text-left text-left" /></div>
                  <div className="text-left text-left text-left">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-emerald-700 italic text-left font-bold">Mủ Quy khô (Tạm tính)</p>
-                    <p className="text-[9px] text-emerald-600 font-bold uppercase tracking-tighter text-left italic text-left font-bold">Quy đổi 70% chuẩn Tập đoàn VRG</p>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-emerald-700 italic text-left font-bold">Mủ Quy khô (70%)</p>
+                    <p className="text-[9px] text-emerald-600 font-bold uppercase tracking-tighter text-left italic text-left font-bold text-left">Chỉ số quy đổi chuẩn VRG</p>
                  </div>
               </div>
               <div className="text-right text-left text-left"><span className="text-3xl font-black text-emerald-900 italic tracking-tighter text-left text-left font-bold">{dryRubberWeight}</span><span className="ml-1 text-[10px] font-black text-emerald-700 uppercase text-left text-left text-left font-bold">KG</span></div>
@@ -406,7 +406,7 @@ export default function App() {
           </form>
 
           <footer className="mt-20 text-center pb-12 border-t border-slate-100 pt-10 text-left text-left">
-             <p className="text-[11px] text-slate-400 font-black uppercase tracking-widest italic text-center leading-relaxed font-bold text-left text-left">Solution by Consultant: Luân - Base.vn <br/> VRG Official Group Edition v4.6</p>
+             <p className="text-[11px] text-slate-400 font-black uppercase tracking-widest italic text-center leading-relaxed font-bold text-left text-left">Solution by Consultant: Luân - Base.vn <br/> Persistent Offline Engine v4.7</p>
           </footer>
         </main>
       </div>
